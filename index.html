@@ -3,86 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Chat & Kanal Sistemi</title>
+    <title>Sohbet Global | Realtime Chat</title>
     <style>
-        :root { --bg: #1a1a1a; --panel: #2d2d2d; --text: #e0e0e0; --accent: #7289da; --active: #43b581; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        :root {
+            --bg-dark: #202225;
+            --sidebar-bg: #2f3136;
+            --chat-bg: #36393f;
+            --accent: #5865f2;
+            --text-main: #ffffff;
+            --text-muted: #b9bbbe;
+            --danger: #ed4245;
+            --success: #3ba55c;
+        }
+
+        body { font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif; background: var(--bg-dark); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Sidebar */
-        #sidebar { width: 260px; background: var(--panel); border-right: 1px solid #444; display: flex; flex-direction: column; padding: 15px; overflow-y: auto; }
-        .input-group { margin-bottom: 15px; }
-        input, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: none; outline: none; box-sizing: border-box; }
-        input { background: #40444b; color: white; }
-        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { opacity: 0.8; }
+        /* SOL PANEL (SIDEBAR) */
+        #sidebar { width: 280px; background: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid #202225; }
+        .sidebar-header { padding: 20px; font-weight: bold; font-size: 1.2rem; border-bottom: 1px solid #202225; background: rgba(0,0,0,0.1); }
+        .sidebar-content { padding: 15px; flex: 1; overflow-y: auto; }
+        
+        /* INPUT TASARIMLARI */
+        .input-box { background: #202225; border-radius: 5px; padding: 10px; margin-bottom: 15px; }
+        .input-box label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
+        input[type="text"] { width: 100%; background: transparent; border: none; color: white; padding: 5px 0; outline: none; margin-top: 5px; }
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        
+        /* KANAL LİSTESİ */
+        .channel-list { margin-top: 20px; }
+        .channel-item { padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 2px; color: var(--text-muted); display: flex; align-items: center; }
+        .channel-item:before { content: "#"; margin-right: 10px; font-size: 1.2rem; opacity: 0.5; }
+        .channel-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .channel-item.active { background: rgba(255,255,255,0.1); color: white; font-weight: bold; }
 
-        /* Kanal Listesi */
-        .section-title { font-size: 0.8em; color: #888; text-transform: uppercase; margin: 15px 0 5px; font-weight: bold; }
-        #channel-list { display: flex; flex-direction: column; gap: 5px; }
-        .channel-item { padding: 10px; background: #36393f; border-radius: 5px; cursor: pointer; font-size: 0.9em; transition: 0.2s; border-left: 3px solid transparent; }
-        .channel-item:hover { background: #40444b; }
-        .channel-item.active { background: #40444b; border-left-color: var(--active); color: white; }
+        /* ANA SOHBET ALANI */
+        #main { flex: 1; display: flex; flex-direction: column; background: var(--chat-bg); }
+        #chat-header { height: 60px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #202225; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        
+        /* MESAJ BALONU */
+        .message { background: rgba(0,0,0,0.1); padding: 10px 15px; border-radius: 8px; border-left: 4px solid var(--accent); max-width: 90%; }
+        .msg-info { display: flex; gap: 10px; margin-bottom: 5px; align-items: center; }
+        .msg-nick { font-weight: bold; }
+        .msg-time { font-size: 0.75rem; color: var(--text-muted); }
+        .msg-text { line-height: 1.4; word-wrap: break-word; }
 
-        /* Ana Alan */
-        #main-container { flex: 1; display: flex; flex-direction: column; }
-        #chat-header { padding: 15px; background: var(--panel); border-bottom: 1px solid #444; font-weight: bold; }
-        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 10px 15px; border-radius: 8px; background: #32353b; max-width: 85%; align-self: flex-start; }
-        .msg-header { font-size: 0.85em; font-weight: bold; margin-bottom: 4px; }
+        /* ÜYE LİSTESİ (SAĞ) */
+        #user-sidebar { width: 240px; background: var(--sidebar-bg); padding: 20px; border-left: 1px solid #202225; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 5px; }
+        .kick-btn { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; visibility: hidden; }
+        .user-item:hover .kick-btn { visibility: visible; }
 
-        /* Üye Menüsü */
-        #member-menu { width: 200px; background: var(--panel); border-left: 1px solid #444; padding: 15px; }
-        @media (max-width: 768px) { #member-menu { display: none; } } /* Mobilde üyeleri gizle */
-        .member-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9em; }
-        .kick-btn { background: #f04747; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.7em; }
+        /* ALT MESAJ GİRİŞİ */
+        #input-area { padding: 20px; background: var(--chat-bg); }
+        .msg-input-wrapper { background: #40444b; border-radius: 8px; display: flex; padding: 5px 15px; }
+        #msg-input { flex: 1; background: transparent; border: none; color: white; padding: 10px; outline: none; }
 
-        #input-area { padding: 15px; background: var(--bg); display: flex; gap: 10px; border-top: 1px solid #333; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h3 style="margin-top:0;">Sohbet Global</h3>
-    
-    <div class="input-group">
-        <input type="text" id="nick-input" placeholder="Nick...">
-        <div style="display:flex; gap:5px; margin-top:5px;">
-            <button onclick="applyFancyNick()" style="flex:1;">Şekilli</button>
-            <input type="color" id="color-picker" value="#ffffff" style="width:50px; padding:2px; height:40px;">
+    <div class="sidebar-header">Sohbet Global</div>
+    <div class="sidebar-content">
+        <div class="input-box">
+            <label>Profil Ayarların</label>
+            <input type="text" id="nick-input" placeholder="Nick...">
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <button class="btn btn-primary" style="font-size:12px;" onclick="fancyNick()">Şekilli</button>
+                <input type="color" id="color-input" value="#ffffff" style="width:50px; height:35px; border:none; background:none; cursor:pointer;">
+            </div>
+            <button class="btn btn-success" onclick="updateProfile()">Güncelle</button>
         </div>
-        <button onclick="updateProfile()" style="background: var(--active);">Kaydet</button>
-    </div>
 
-    <div class="section-title">Yeni Kanal Aç/Katıl</div>
-    <div class="input-group">
-        <input type="text" id="channel-input" placeholder="Kanal adı...">
-        <button onclick="joinChannelAction()">Giriş Yap</button>
-    </div>
-
-    <div class="section-title">Kanallarım</div>
-    <div id="channel-list">
+        <div class="input-box">
+            <label>Yeni Kanal Aç</label>
+            <input type="text" id="new-channel-input" placeholder="Kanal adı...">
+            <button class="btn btn-primary" onclick="createNewChannel()">Katıl/Aç</button>
         </div>
-    
-    <div id="status" style="font-size: 0.7em; color: #888; margin-top:auto; padding-top:10px;">Bağlanıyor...</div>
+
+        <div class="channel-list" id="channel-list">
+            </div>
+    </div>
 </div>
 
-<div id="main-container">
-    <div id="chat-header">Kanal: <span id="current-channel-name">Yükleniyor...</span></div>
+<div id="main">
+    <div id="chat-header"># <span id="current-channel-title">Global</span></div>
     <div id="messages"></div>
     <div id="input-area">
-        <input type="text" id="msg-input" placeholder="Mesajınızı yazın...">
-        <button onclick="sendMessage()" style="width: 80px;">Gönder</button>
+        <div class="msg-input-wrapper">
+            <input type="text" id="msg-input" placeholder="Mesajınızı buraya yazın..." onkeypress="if(event.key === 'Enter') sendMsg()">
+        </div>
     </div>
 </div>
 
-<div id="member-menu">
-    <div class="section-title">Üyeler</div>
-    <div id="member-list"></div>
+<div id="user-sidebar">
+    <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; margin-bottom: 15px;">Üyeler — <span id="user-count">0</span></div>
+    <div id="user-list"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, remove, update, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, remove, update, serverTimestamp, onDisconnect, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -99,122 +124,154 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    let myData = { uid: "", nick: "", color: "#ffffff" };
-    let currentChannel = null;
-    let myChannels = ["Global"]; // Varsayılan kanal
+    let myInfo = { uid: "", nick: "", color: "#ffffff" };
+    let currentChannel = "Global";
+    let joinedChannels = ["Global"];
+    let isCreator = false;
 
-    // Giriş ve Profil
+    // 1. OTURUM VE PLAYER ATAMA
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            myData.uid = user.uid;
-            const userRef = ref(db, 'users/' + user.uid);
-            onValue(userRef, (snapshot) => {
-                if (!snapshot.exists()) {
-                    const randomId = Math.floor(Math.random() * 999);
-                    myData.nick = "Player" + randomId;
-                    set(userRef, myData);
+            myInfo.uid = user.uid;
+            const uRef = ref(db, 'users/' + user.uid);
+            onValue(uRef, (snap) => {
+                if (!snap.exists()) {
+                    const id = Math.floor(Math.random() * 99);
+                    myInfo.nick = "Player" + id;
+                    set(uRef, myInfo);
                 } else {
-                    myData = snapshot.val();
+                    myInfo = snap.val();
                 }
-                document.getElementById('nick-input').value = myData.nick;
-                document.getElementById('color-picker').value = myData.color;
-                document.getElementById('status').innerText = "Aktif: " + myData.nick;
-                
-                // İlk girişte Global'e bağlan
-                if(!currentChannel) switchChannel("Global");
+                document.getElementById('nick-input').value = myInfo.nick;
+                document.getElementById('color-input').value = myInfo.color;
+                switchChannel("Global");
             }, { onlyOnce: true });
         }
     });
 
-    // Kanal Değiştirme ve Listeleme
-    window.switchChannel = (channelName) => {
-        if (currentChannel === channelName) return;
-        
-        // Önceki dinleyicileri temizle
-        if (currentChannel) {
-            off(ref(db, `channels/${currentChannel}/messages`));
-            off(ref(db, `channels/${currentChannel}/activeUsers`));
-            remove(ref(db, `channels/${currentChannel}/activeUsers/${myData.uid}`));
-        }
+    // 2. KANAL YÖNETİMİ
+    window.switchChannel = (name) => {
+        // Önceki dinleyicileri kapat
+        off(ref(db, `channels/${currentChannel}/messages`));
+        off(ref(db, `channels/${currentChannel}/users`));
+        remove(ref(db, `channels/${currentChannel}/users/${myInfo.uid}`));
 
-        currentChannel = channelName;
-        document.getElementById('current-channel-name').innerText = channelName;
-        renderChannelList();
-
-        // Kanala giriş kaydı
-        set(ref(db, `channels/${channelName}/activeUsers/${myData.uid}`), { nick: myData.nick, color: myData.color });
-
-        // Mesajları Getir
-        onValue(ref(db, `channels/${channelName}/messages`), (snapshot) => {
-            const msgDiv = document.getElementById('messages');
-            msgDiv.innerHTML = "";
-            snapshot.forEach((child) => {
-                const data = child.val();
-                msgDiv.innerHTML += `
-                    <div class="message">
-                        <div class="msg-header" style="color: ${data.color}">${data.sender}</div>
-                        <div>${data.text}</div>
-                    </div>`;
-            });
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        });
-
-        // Üyeleri Getir
-        onValue(ref(db, `channels/${channelName}/activeUsers`), (snapshot) => {
-            const listDiv = document.getElementById('member-list');
-            listDiv.innerHTML = "";
-            snapshot.forEach((child) => {
-                const user = child.val();
-                listDiv.innerHTML += `<div class="member-item"><span style="color:${user.color}">${user.nick}</span></div>`;
-            });
-        });
+        // Yasaklı mıyız kontrol et
+        onValue(ref(db, `channels/${name}/bans/${myInfo.uid}`), (snap) => {
+            if (snap.exists()) {
+                alert("Bu kanaldan yasaklandınız!");
+                switchChannel("Global");
+            } else {
+                currentChannel = name;
+                document.getElementById('current-channel-title').innerText = name;
+                setupChannel(name);
+                renderChannelList();
+            }
+        }, { onlyOnce: true });
     };
 
-    function renderChannelList() {
-        const listDiv = document.getElementById('channel-list');
-        listDiv.innerHTML = "";
-        myChannels.forEach(ch => {
-            const activeClass = ch === currentChannel ? "active" : "";
-            listDiv.innerHTML += `<div class="channel-item ${activeClass}" onclick="switchChannel('${ch}')"># ${ch}</div>`;
+    function setupChannel(name) {
+        // Kurucu kontrolü
+        const cRef = ref(db, `channels/${name}/creator`);
+        onValue(cRef, (snap) => {
+            if (!snap.exists()) set(cRef, myInfo.uid);
+            isCreator = (snap.val() === myInfo.uid || !snap.exists());
+        }, { onlyOnce: true });
+
+        // Kullanıcıyı odaya ekle
+        const myActiveRef = ref(db, `channels/${name}/users/${myInfo.uid}`);
+        set(myActiveRef, { nick: myInfo.nick, color: myInfo.color });
+        onDisconnect(myActiveRef).remove();
+
+        // Mesajları Dinle
+        onValue(ref(db, `channels/${name}/messages`), (snap) => {
+            const box = document.getElementById('messages');
+            box.innerHTML = "";
+            snap.forEach(m => {
+                const d = m.val();
+                box.innerHTML += `
+                    <div class="message">
+                        <div class="msg-info">
+                            <span class="msg-nick" style="color:${d.color}">${d.nick}</span>
+                            <span class="msg-time">${new Date(d.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        <div class="msg-text">${d.text}</div>
+                    </div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+
+        // Üyeleri Dinle
+        onValue(ref(db, `channels/${name}/users`), (snap) => {
+            const list = document.getElementById('user-list');
+            list.innerHTML = "";
+            let count = 0;
+            snap.forEach(u => {
+                count++;
+                const ud = u.val();
+                const isMe = u.key === myInfo.uid;
+                list.innerHTML += `
+                    <div class="user-item">
+                        <span style="color:${ud.color}; font-weight:${isMe?'bold':'normal'}">${ud.nick} ${isMe?'(Sen)':''}</span>
+                        ${isCreator && !isMe ? `<button class="kick-btn" onclick="kick('${u.key}')">At</button>` : ''}
+                    </div>`;
+            });
+            document.getElementById('user-count').innerText = count;
         });
     }
 
-    window.joinChannelAction = () => {
-        const name = document.getElementById('channel-input').value.trim();
-        if(name && !myChannels.includes(name)) {
-            myChannels.push(name);
-            switchChannel(name);
-            document.getElementById('channel-input').value = "";
-        }
-    };
-
-    window.sendMessage = () => {
-        const input = document.getElementById('msg-input');
-        if (!input.value.trim()) return;
+    // 3. FONKSİYONLAR
+    window.sendMsg = () => {
+        const inp = document.getElementById('msg-input');
+        if (!inp.value.trim()) return;
         push(ref(db, `channels/${currentChannel}/messages`), {
-            sender: myData.nick,
-            text: input.value,
-            color: myData.color,
-            timestamp: serverTimestamp()
+            nick: myInfo.nick,
+            color: myInfo.color,
+            text: inp.value,
+            time: serverTimestamp()
         });
-        input.value = "";
+        inp.value = "";
     };
 
     window.updateProfile = () => {
-        const n = document.getElementById('nick-input').value;
-        const c = document.getElementById('color-picker').value;
-        update(ref(db, 'users/' + myData.uid), { nick: n, color: c });
-        myData.nick = n; myData.color = c;
-        if(currentChannel) set(ref(db, `channels/${currentChannel}/activeUsers/${myData.uid}`), { nick: n, color: c });
-        alert("Güncellendi!");
+        myInfo.nick = document.getElementById('nick-input').value;
+        myInfo.color = document.getElementById('color-input').value;
+        update(ref(db, 'users/' + myInfo.uid), myInfo);
+        update(ref(db, `channels/${currentChannel}/users/${myInfo.uid}`), { nick: myInfo.nick, color: myInfo.color });
+        alert("Profil güncellendi!");
     };
 
-    window.applyFancyNick = () => {
-        const input = document.getElementById('nick-input');
-        const map = { 'a': 'α', 'b': 'в', 's': 'ѕ', 'e': 'є', 'l': 'ℓ', 'm': 'м' }; // Örnek harfler
-        input.value = input.value.split('').map(char => map[char.toLowerCase()] || char).join('');
+    window.createNewChannel = () => {
+        const name = document.getElementById('new-channel-input').value.trim();
+        if (name && !joinedChannels.includes(name)) {
+            joinedChannels.push(name);
+            switchChannel(name);
+            document.getElementById('new-channel-input').value = "";
+        }
+    };
+
+    window.renderChannelList = () => {
+        const list = document.getElementById('channel-list');
+        list.innerHTML = "";
+        joinedChannels.forEach(c => {
+            list.innerHTML += `<div class="channel-item ${c === currentChannel ? 'active' : ''}" onclick="switchChannel('${c}')">${c}</div>`;
+        });
+    };
+
+    window.kick = (targetUid) => {
+        if (confirm("Bu kullanıcıyı kalıcı olarak atmak istiyor musun?")) {
+            set(ref(db, `channels/${currentChannel}/bans/${targetUid}`), true);
+            remove(ref(db, `channels/${currentChannel}/users/${targetUid}`));
+        }
+    };
+
+    window.fancyNick = () => {
+        const inp = document.getElementById('nick-input');
+        const map = {a:'α',b:'в',c:'¢',d:'∂',e:'є',f:'ƒ',g:'g',h:'н',i:'ι',j:'נ',k:'к',l:'ℓ',m:'м',n:'η',o:'σ',p:'ρ',r:'я',s:'ѕ',t:'т',u:'υ',v:'ν',y:'у',z:'z'};
+        inp.value = inp.value.split('').map(c => map[c.toLowerCase()] || c).join('');
     };
 </script>
+
 </body>
 </html>
