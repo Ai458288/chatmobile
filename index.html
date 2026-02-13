@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Chat v5</title>
+    <title>ChatTheOnlibe v5</title>
     <style>
-        :root { --bg: #121212; --panel: #1e1e1e; --accent: #5865f2; --text: #e0e0e0; }
+        :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        /* Tam ekran yerleşimi */
         html, body { 
             height: 100%; width: 100%; overflow: hidden;
             font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text);
@@ -16,29 +15,29 @@
 
         #app { display: flex; height: 100vh; width: 100vw; }
 
-        /* Sidebar (Sol Menü) */
+        /* Sol Panel */
         #sidebar { width: 220px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
         .label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 6px; display: block; }
 
         input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 6px; font-size: 13px; }
         button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        button:disabled { background: #444; opacity: 0.7; }
+        button:disabled { background: #444; opacity: 0.7; cursor: not-allowed; }
 
         .chan-list { flex: 1; overflow-y: auto; padding: 8px; }
         .chan-item { padding: 10px; border-radius: 4px; cursor: pointer; margin-bottom: 3px; display: flex; justify-content: space-between; font-size: 14px; color: #aaa; }
         .chan-item.active { background: #333; color: white; font-weight: bold; border-left: 3px solid var(--accent); }
 
-        /* Ana Sohbet Alanı */
+        /* Ana Alan */
         #main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
         
-        /* ÜSTTEKİ MESAJ YAZMA ALANI */
+        /* Mesaj Yazma Üstte */
         #input-zone { padding: 12px; background: var(--panel); border-bottom: 1px solid #333; z-index: 10; }
         .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 4px 12px; border-radius: 20px; }
-        #msg-input { flex: 1; background: transparent; border: none; padding: 8px; color: white; outline: none; margin-bottom: 0; }
+        #msg-input { flex: 1; background: transparent; border: none; padding: 8px; color: white; outline: none; }
         #send-btn { width: auto; background: none; color: var(--accent); font-size: 14px; padding: 4px 8px; }
 
-        /* MESAJLARIN LİSTELENDİĞİ KAYDIRILABİLİR ALAN */
+        /* Mesaj Listesi */
         #messages { 
             flex: 1; 
             overflow-y: auto; 
@@ -49,15 +48,8 @@
             background: #121212;
         }
 
-        .message-line { 
-            font-size: 15px; 
-            line-height: 1.4; 
-            word-wrap: break-word; 
-            padding: 2px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-        }
+        .message-line { font-size: 15px; line-height: 1.4; word-wrap: break-word; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
         .msg-nick { font-weight: bold; margin-right: 5px; }
-        .msg-text { color: #e0e0e0; }
 
         @media (max-width: 600px) { #sidebar { width: 110px; } .chan-item { font-size: 12px; } }
     </style>
@@ -88,11 +80,10 @@
                 # <span id="cur-title">Global</span>
             </div>
             <div class="input-row">
-                <input type="text" id="msg-input" placeholder="Mesajınızı buraya yazın..." onkeypress="if(event.key==='Enter') sendMsg()">
+                <input type="text" id="msg-input" placeholder="Mesajınızı yazın..." onkeypress="if(event.key==='Enter') sendMsg()">
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
         </div>
-        
         <div id="messages"></div>
     </div>
 </div>
@@ -102,14 +93,16 @@
     import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // SENİN YENİ CONFIG BİLGİLERİN
     const firebaseConfig = {
-        apiKey: "AIzaSyB6e4oz3dUalcKrB5qWrLi4KeQ3G7-W7wY",
-        authDomain: "online-chat-65a2a.firebaseapp.com",
-        databaseURL: "https://online-chat-65a2a-default-rtdb.firebaseio.com",
-        projectId: "online-chat-65a2a",
-        storageBucket: "online-chat-65a2a.firebasestorage.app",
-        messagingSenderId: "864284627272",
-        appId: "1:864284627272:web:66b6cebe41afc4d23f637d"
+      apiKey: "AIzaSyBEsgu3-BbMIKezTXerExBu6ODmRX-F13U",
+      authDomain: "chattheonlibe.firebaseapp.com",
+      databaseURL: "https://chattheonlibe-default-rtdb.firebaseio.com",
+      projectId: "chattheonlibe",
+      storageBucket: "chattheonlibe.firebasestorage.app",
+      messagingSenderId: "515915419900",
+      appId: "1:515915419900:web:f18286a157558671130779",
+      measurementId: "G-MK5EK9LQKE"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -148,7 +141,6 @@
             box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
-                // NİCK: MESAJ FORMATI
                 box.innerHTML += `
                 <div class="message-line">
                     <span class="msg-nick" style="color:${d.color}">${d.nick}:</span>
@@ -182,7 +174,7 @@
         });
         i.value = "";
 
-        // 5 SANİYE SPAM ENGELİ
+        // 5 Saniye Spam Koruması
         canSend = false;
         let sec = 5;
         btn.disabled = true;
