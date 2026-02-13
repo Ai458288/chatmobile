@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Chat & Kanal Sistemi</title>
+    <style>
+        :root { --bg: #1a1a1a; --panel: #2d2d2d; --text: #e0e0e0; --accent: #7289da; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        
+        /* Sidebar - Kanal ve Profil */
+        #sidebar { width: 260px; background: var(--panel); border-right: 1px solid #444; display: flex; flex-direction: column; padding: 15px; }
+        .input-group { margin-bottom: 20px; }
+        input, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: none; outline: none; box-sizing: border-box; }
+        input { background: #40444b; color: white; }
+        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+
+        /* Main Chat Area */
+        #chat-area { flex: 1; display: flex; flex-direction: column; }
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 8px 12px; border-radius: 8px; background: #32353b; max-width: 80%; word-wrap: break-word; }
+        .msg-header { font-size: 0.85em; font-weight: bold; margin-bottom: 4px; }
+
+        /* Üye Menüsü */
+        #member-menu { width: 200px; background: var(--panel); border-left: 1px solid #444; padding: 15px; }
+        .member-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9em; }
+        .kick-btn { background: #f04747; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.7em; }
+
+        /* Alt Mesaj Alanı */
+        #input-area { padding: 20px; background: var(--bg); display: flex; gap: 10px; }
+        #msg-input { flex: 1; }
+        #color-picker { width: 45px; height: 40px; padding: 0; cursor: pointer; margin: 0;}
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h3>Sohbet Global</h3>
+    <div class="input-group">
+        <label>Nick:</label>
+        <input type="text" id="nick-input" placeholder="Nick yazın...">
+        <button onclick="applyFancyNick()">Şekilli Yap</button>
+        <label style="margin-top:10px; display:block;">Renk:</label>
+        <input type="color" id="color-picker" value="#ffffff">
+        <button onclick="updateProfile()" style="margin-top:5px; background: #43b581;">Güncelle</button>
+    </div>
+    <hr style="width:100%; border: 0.5px solid #444;">
+    <div class="input-group">
+        <label>Kanal (Örn: 123):</label>
+        <input type="text" id="channel-input" placeholder="Kanal adı...">
+        <button onclick="joinChannel()">Giriş Yap</button>
+    </div>
+    <div id="status" style="font-size: 0.8em; color: #aaa;">Bağlanılıyor...</div>
+</div>
+
+<div id="chat-area">
+    <div id="messages">
+        <div style="text-align:center; color: #888;">Lütfen bir kanala katılın.</div>
+    </div>
+    <div id="input-area" class="hidden">
+        <input type="text" id="msg-input" placeholder="Mesaj yazın...">
+        <button onclick="sendMessage()" style="width: 80px;">Gönder</button>
+    </div>
+</div>
+
+<div id="member-menu" class="hidden">
+    <h4>Üyeler</h4>
+    <div id="member-list"></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB6e4oz3dUalcKrB5qWrLi4KeQ3G7-W7wY",
+        authDomain: "online-chat-65a2a.firebaseapp.com",
+        databaseURL: "https://online-chat-65a2a-default-rtdb.firebaseio.com",
+        projectId: "online-chat-65a2a",
+        storageBucket: "online-chat-65a2a.firebasestorage.app",
+        messagingSenderId: "864284627272",
+        appId: "1:864284627272:web:66b6cebe41afc4d23f637d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    let myData = { uid: "", nick: "", color: "#ffffff" };
+    let currentChannel = null;
+    let isCreator = false;
+
+    // 1. Anonim Giriş ve Player Atama
+    signInAnonymously(auth);
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            myData.uid = user.uid;
+            const userRef = ref(db, 'users/' + user.uid);
+            onValue(userRef, (snapshot) => {
+                if (!snapshot.exists()) {
+                    const randomId = Math.floor(Math.random() * 999);
+                    myData.nick = "Player" + randomId;
+                    set(userRef, myData);
+                } else {
+                    myData = snapshot.val();
+                }
+                document.getElementById('nick-input').value = myData.nick;
+                document.getElementById('color-picker').value = myData.color;
+                document.getElementById('status').innerText = "Giriş yapıldı: " + myData.nick;
+            }, { onlyOnce: true });
+        }
+    });
+
+    // 2. Profil Güncelleme
+    window.updateProfile = () => {
+        const newNick = document.getElementById('nick-input').value;
+        const newColor = document.getElementById('color-picker').value;
+        if(newNick.trim() === "") return;
+        
+        myData.nick = newNick;
+        myData.color = newColor;
+        update(ref(db, 'users/' + myData.uid), { nick: newNick, color: newColor });
+        alert("Profil güncellendi!");
+    };
+
+    // 3. Şekilli Nick Fonksiyonu
+    window.applyFancyNick = () => {
+        const input = document.getElementById('nick-input');
+        const map = { 'a': 'α', 'b': 'в', 'c': '¢', 'd': '∂', 'e': 'є', 'f': 'ƒ', 'g': 'g', 'h': 'н', 'i': 'ι', 'j': 'נ', 'k': 'к', 'l': 'ℓ', 'm': 'м', 'n': 'η', 'o': 'σ', 'p': 'ρ', 'r': 'я', 's': 'ѕ', 't': 'т', 'u': 'υ', 'v': 'ν', 'y': 'у', 'z': 'z' };
+        input.value = input.value.split('').map(char => map[char.toLowerCase()] || char).join('');
+    };
+
+    // 4. Kanal Giriş ve Ban Kontrolü
+    window.joinChannel = async () => {
+        const channelName = document.getElementById('channel-input').value.trim();
+        if (!channelName) return;
+
+        // Ban kontrolü
+        const banRef = ref(db, `channels/${channelName}/bannedUsers/${myData.uid}`);
+        onValue(banRef, (snapshot) => {
+            if (snapshot.exists()) {
+                alert("Bu kanaldan yasaklandınız!");
+                location.reload();
+            } else {
+                startChannel(channelName);
+            }
+        }, { onlyOnce: true });
+    };
+
+    function startChannel(name) {
+        currentChannel = name;
+        document.getElementById('input-area').classList.remove('hidden');
+        document.getElementById('member-menu').classList.remove('hidden');
+        document.getElementById('messages').innerHTML = `<div style="text-align:center; color: #888;">#${name} kanalına katıldınız.</div>`;
+
+        // Kurucu Kontrolü
+        const creatorRef = ref(db, `channels/${name}/creator`);
+        onValue(creatorRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                set(creatorRef, myData.uid);
+                isCreator = true;
+            } else if (snapshot.val() === myData.uid) {
+                isCreator = true;
+            }
+        }, { onlyOnce: true });
+
+        // Üyeler listesine kendini ekle
+        set(ref(db, `channels/${name}/activeUsers/${myData.uid}`), { nick: myData.nick, color: myData.color });
+
+        // Mesajları Dinle
+        onValue(ref(db, `channels/${name}/messages`), (snapshot) => {
+            const msgDiv = document.getElementById('messages');
+            msgDiv.innerHTML = "";
+            snapshot.forEach((child) => {
+                const data = child.val();
+                msgDiv.innerHTML += `
+                    <div class="message">
+                        <div class="msg-header" style="color: ${data.color}">${data.sender}</div>
+                        <div>${data.text}</div>
+                    </div>
+                `;
+            });
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        });
+
+        // Üye Listesini Dinle
+        onValue(ref(db, `channels/${name}/activeUsers`), (snapshot) => {
+            const listDiv = document.getElementById('member-list');
+            listDiv.innerHTML = "";
+            snapshot.forEach((child) => {
+                const user = child.val();
+                const isMe = child.key === myData.uid;
+                listDiv.innerHTML += `
+                    <div class="member-item">
+                        <span style="color: ${user.color}">${user.nick} ${isMe ? "(Sen)" : ""}</span>
+                        ${isCreator && !isMe ? `<button class="kick-btn" onclick="kickUser('${child.key}')">At</button>` : ""}
+                    </div>
+                `;
+            });
+        });
+    }
+
+    // 5. Mesaj Gönder
+    window.sendMessage = () => {
+        const input = document.getElementById('msg-input');
+        if (input.value.trim() === "" || !currentChannel) return;
+
+        push(ref(db, `channels/${currentChannel}/messages`), {
+            sender: myData.nick,
+            senderUid: myData.uid,
+            text: input.value,
+            color: myData.color,
+            timestamp: serverTimestamp()
+        });
+        input.value = "";
+    };
+
+    // 6. Kişiyi At (Kick)
+    window.kickUser = (targetUid) => {
+        if (!isCreator) return;
+        if (confirm("Bu kişiyi kanaldan atmak istediğine emin misin?")) {
+            set(ref(db, `channels/${currentChannel}/bannedUsers/${targetUid}`), true);
+            remove(ref(db, `channels/${currentChannel}/activeUsers/${targetUid}`));
+            alert("Kullanıcı yasaklandı.");
+        }
+    };
+</script>
+
+</body>
+</html>
+
