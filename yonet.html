@@ -2,14 +2,15 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Control v8</title>
+    <title>Chat Control v9 | Admin</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
         .card { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; }
-        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 8px; margin: 5px 0; }
+        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 8px; margin: 5px 0; cursor:pointer; }
         #auth-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:100;}
         .msg-item { border-bottom: 1px solid #222; padding: 8px; display: flex; justify-content: space-between; }
-        .chan-tag { color: #f0f; font-weight: bold; margin-top: 15px; display: block; }
+        .chan-tag { color: #f0f; font-weight: bold; margin-top: 15px; display: block; border-bottom: 1px solid; }
+        .btn-group { display: flex; gap: 5px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -21,20 +22,24 @@
 </div>
 
 <div id="admin-panel" style="display:none;">
-    <h2>SYSTEM OVERRIDE</h2>
+    <h2>[ SYSTEM OVERRIDE V9 ]</h2>
     
     <div class="card">
-        <h4>USER ACTIONS</h4>
-        <input type="text" id="target-id" placeholder="Paste User ID here...">
-        <br>
-        <button onclick="doAction('ban')">BAN KULLANICI</button>
-        <button onclick="doAction('rgb_on')">RGB VER</button>
-        <button onclick="doAction('rgb_off')">RGB AL</button>
+        <h4>USER CONTROLS</h4>
+        <input type="text" id="target-id" placeholder="User ID buraya yapıştır..." style="width:300px;">
+        <div class="btn-group">
+            <button onclick="doAction('ban')" style="color:red;">BANLA</button>
+            <button onclick="doAction('unban')" style="color:#2ecc71;">BAN KALDIR</button>
+            <button onclick="doAction('rgb_on')">RGB VER</button>
+            <button onclick="doAction('rgb_off')">RGB AL</button>
+            <button onclick="doAction('limit_off')" style="color:yellow;">SÜRE KALDIR (VIP)</button>
+            <button onclick="doAction('limit_on')">SÜRE EKLE</button>
+        </div>
     </div>
 
     <div class="card">
-        <h4>LIVE CHANNELS & MESSAGES</h4>
-        <div id="master-list">Loading database...</div>
+        <h4>TÜM KANALLAR VE MESAJLAR</h4>
+        <div id="master-list">Veritabanı okunuyor...</div>
     </div>
 </div>
 
@@ -60,16 +65,21 @@
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('admin-panel').style.display = 'block';
             startMonitor();
-        } else alert("Access Denied");
+        } else alert("Yanlış Şifre!");
     };
 
     window.doAction = (act) => {
         const id = document.getElementById('target-id').value.trim();
-        if(!id) return alert("ID Required");
+        if(!id) return alert("ID Lazım!");
+        
         if(act==='ban') set(ref(db, 'bans/'+id), {banned:true});
+        if(act==='unban') remove(ref(db, 'bans/'+id));
         if(act==='rgb_on') update(ref(db, 'users/'+id), {isRGB:true});
         if(act==='rgb_off') update(ref(db, 'users/'+id), {isRGB:false});
-        alert("Success!");
+        if(act==='limit_off') update(ref(db, 'users/'+id), {noLimit:true});
+        if(act==='limit_on') update(ref(db, 'users/'+id), {noLimit:false});
+        
+        alert("İşlem Tamam!");
     };
 
     function startMonitor() {
@@ -77,7 +87,7 @@
             const list = document.getElementById('master-list');
             list.innerHTML = "";
             const data = snap.val();
-            if(!data) { list.innerHTML = "No active data."; return; }
+            if(!data) { list.innerHTML = "Veri yok."; return; }
 
             Object.keys(data).forEach(cName => {
                 const title = document.createElement('span');
@@ -92,7 +102,7 @@
                         const row = document.createElement('div');
                         row.className = "msg-item";
                         row.innerHTML = `<span><b>${m.nick}:</b> ${m.text} <br><small>ID: ${m.uid}</small></span>
-                                         <button onclick="delMsg('${cName}','${mKey}')" style="color:red;">DELETE</button>`;
+                                         <button onclick="delMsg('${cName}','${mKey}')" style="color:red;">SİL</button>`;
                         list.appendChild(row);
                     });
                 }
@@ -100,7 +110,7 @@
         });
     }
 
-    window.delMsg = (c, k) => { if(confirm("Delete?")) remove(ref(db, `channels/${c}/messages/${k}`)); };
+    window.delMsg = (c, k) => { if(confirm("Silinsin mi?")) remove(ref(db, `channels/${c}/messages/${k}`)); };
 </script>
 </body>
 </html>
