@@ -7,84 +7,51 @@
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        html, body { 
-            height: 100%; width: 100%; overflow: hidden;
-            font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text);
-        }
-
+        html, body { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: var(--bg); color: var(--text); }
         #app { display: flex; height: 100vh; width: 100vw; }
-
-        /* Sol Menü */
         #sidebar { width: 220px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
         .label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 6px; display: block; }
-
-        input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 6px; font-size: 13px; }
-        button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 6px; }
+        button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
         button:disabled { background: #444; opacity: 0.7; cursor: not-allowed; }
-
         .chan-list { flex: 1; overflow-y: auto; padding: 8px; }
         .chan-item { padding: 10px; border-radius: 4px; cursor: pointer; margin-bottom: 3px; display: flex; justify-content: space-between; font-size: 14px; color: #aaa; }
         .chan-item.active { background: #333; color: white; font-weight: bold; border-left: 3px solid var(--accent); }
-
-        /* Sağ Alan */
-        #main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
-        
-        /* Üst Mesaj Yazma Paneli */
-        #input-zone { padding: 12px; background: var(--panel); border-bottom: 1px solid #333; z-index: 10; }
+        #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        #input-zone { padding: 12px; background: var(--panel); border-bottom: 1px solid #333; }
         .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 4px 12px; border-radius: 20px; }
         #msg-input { flex: 1; background: transparent; border: none; padding: 8px; color: white; outline: none; }
-        #send-btn { width: auto; background: none; color: var(--accent); font-size: 14px; padding: 4px 8px; border: none; cursor: pointer; font-weight: bold; }
-
-        /* Mesaj Alanı */
-        #messages { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 6px; 
-            background: #121212;
-        }
-
+        #send-btn { width: auto; background: none; color: var(--accent); font-weight: bold; cursor: pointer; border: none; }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 6px; background: #121212; }
         .message-line { font-size: 15px; line-height: 1.4; word-wrap: break-word; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
         .msg-nick { font-weight: bold; margin-right: 5px; }
-
-        @media (max-width: 600px) { 
-            #sidebar { width: 120px; } 
-            .chan-item { font-size: 12px; }
-            .msg-nick { font-size: 14px; }
-        }
+        @media (max-width: 600px) { #sidebar { width: 120px; } .chan-item { font-size: 12px; } }
     </style>
 </head>
 <body>
-
 <div id="app">
     <div id="sidebar">
         <div class="p-3">
             <span class="label">Profil Ayarları</span>
             <input type="text" id="nick-in" placeholder="Nick...">
             <div style="display:flex; gap:4px;">
-                <input type="color" id="color-in" value="#ffffff" style="width:35px; height:30px; border:none; cursor:pointer; background:none;">
-                <button onclick="updateProfile()" style="background:#2ecc71;">KAYDET</button>
+                <input type="color" id="color-in" value="#ffffff" style="width:35px; height:30px; border:none; cursor:pointer;">
+                <button onclick="updateProfile()" style="background:#2ecc71;">OK</button>
             </div>
         </div>
         <div class="p-3">
-            <span class="label">Kanal Katıl / Aç</span>
+            <span class="label">Yeni Kanal</span>
             <input type="text" id="chan-in" placeholder="Kanal adı...">
             <button onclick="joinNew()">KATIL</button>
         </div>
         <div class="chan-list" id="chan-list"></div>
     </div>
-
     <div id="main">
         <div id="input-zone">
-            <div style="font-size:12px; font-weight:bold; color:var(--accent); margin-bottom:8px; margin-left:10px;">
-                # <span id="cur-title">Global</span>
-            </div>
+            <div style="font-size:12px; font-weight:bold; color:var(--accent); margin-bottom:8px;"># <span id="cur-title">Global</span></div>
             <div class="input-row">
-                <input type="text" id="msg-input" placeholder="Mesajınızı yazın..." onkeypress="if(event.key==='Enter') sendMsg()">
+                <input type="text" id="msg-input" placeholder="Mesaj..." onkeypress="if(event.key==='Enter') sendMsg()">
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
         </div>
@@ -97,7 +64,6 @@
     import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // Firebase Config - chattheonlibe
     const firebaseConfig = {
       apiKey: "AIzaSyBEsgu3-BbMIKezTXerExBu6ODmRX-F13U",
       authDomain: "chattheonlibe.firebaseapp.com",
@@ -105,8 +71,7 @@
       projectId: "chattheonlibe",
       storageBucket: "chattheonlibe.firebasestorage.app",
       messagingSenderId: "515915419900",
-      appId: "1:515915419900:web:f18286a157558671130779",
-      measurementId: "G-MK5EK9LQKE"
+      appId: "1:515915419900:web:f18286a157558671130779"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -118,8 +83,8 @@
     let joined = JSON.parse(localStorage.getItem('myChans')) || ["Global"];
     let canSend = true;
 
-    // Giriş ve Profil İşlemleri
-    signInAnonymously(auth);
+    signInAnonymously(auth).catch(e => console.error("Auth hatası:", e));
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             me.uid = user.uid;
@@ -127,9 +92,7 @@
                 if (!s.exists()) {
                     me.nick = "User" + Math.floor(Math.random()*999);
                     set(ref(db, 'users/' + user.uid), me);
-                } else { 
-                    me = s.val(); 
-                }
+                } else { me = s.val(); }
                 document.getElementById('nick-in').value = me.nick;
                 document.getElementById('color-in').value = me.color;
                 switchChan(curChan);
@@ -137,28 +100,22 @@
         }
     });
 
-    // Kanal Değiştirme ve Mesaj Dinleme
     window.switchChan = (name) => {
         off(ref(db, `channels/${curChan}/messages`));
         curChan = name;
         localStorage.setItem('lastChan', name);
         document.getElementById('cur-title').innerText = name;
-        
         onValue(ref(db, `channels/${name}/messages`), (s) => {
             const box = document.getElementById('messages');
             box.innerHTML = "";
             if (s.exists()) {
                 s.forEach(m => {
                     const d = m.val();
-                    box.innerHTML += `
-                    <div class="message-line">
-                        <span class="msg-nick" style="color:${d.color}">${d.nick}:</span>
-                        <span class="msg-text">${d.text}</span>
-                    </div>`;
+                    box.innerHTML += `<div class="message-line"><span class="msg-nick" style="color:${d.color}">${d.nick}:</span><span class="msg-text">${d.text}</span></div>`;
                 });
                 box.scrollTop = box.scrollHeight;
             } else {
-                box.innerHTML = `<div style="color:#444; font-size:12px; text-align:center; margin-top:20px;">Burada henüz bir şey yok...</div>`;
+                box.innerHTML = `<div style="color:#444; text-align:center; margin-top:20px;">Henüz mesaj yok...</div>`;
             }
         });
         renderList();
@@ -168,65 +125,30 @@
         const list = document.getElementById('chan-list');
         list.innerHTML = `<span class="label">Kanallarım</span>`;
         joined.forEach(c => {
-            list.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}">
-                <span onclick="switchChan('${c}')" style="flex:1;"># ${c}</span>
-                ${c !== 'Global' ? `<span onclick="leave('${c}')" style="color:#ff4d4d; font-weight:bold; cursor:pointer;">×</span>` : ''}
-            </div>`;
+            list.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}"><span onclick="switchChan('${c}')" style="flex:1;"># ${c}</span>${c !== 'Global' ? `<span onclick="leave('${c}')" style="color:#ff4d4d; font-weight:bold; cursor:pointer;">×</span>` : ''}</div>`;
         });
         localStorage.setItem('myChans', JSON.stringify(joined));
     };
 
-    // Mesaj Gönder (5 saniye kuralı ile)
     window.sendMsg = () => {
         const i = document.getElementById('msg-input');
         const btn = document.getElementById('send-btn');
         if(!i.value.trim() || !canSend) return;
-
-        push(ref(db, `channels/${curChan}/messages`), {
-            nick: me.nick, 
-            color: me.color, 
-            text: i.value, 
-            time: serverTimestamp()
-        });
+        push(ref(db, `channels/${curChan}/messages`), { nick: me.nick, color: me.color, text: i.value, time: serverTimestamp() });
         i.value = "";
-
-        // Slow mode başlat
         canSend = false;
         let sec = 5;
         btn.disabled = true;
-        const timer = setInterval(() => {
-            btn.innerText = sec + "s";
-            sec--;
-            if(sec < 0) {
-                clearInterval(timer);
-                canSend = true;
-                btn.disabled = false;
-                btn.innerText = "GÖNDER";
-            }
-        }, 1000);
+        const timer = setInterval(() => { btn.innerText = sec + "s"; sec--; if(sec < 0) { clearInterval(timer); canSend = true; btn.disabled = false; btn.innerText = "GÖNDER"; } }, 1000);
     };
 
     window.joinNew = () => {
         const n = document.getElementById('chan-in').value.trim();
-        if(n && !joined.includes(n)) {
-            joined.push(n);
-            switchChan(n);
-            document.getElementById('chan-in').value = "";
-        }
+        if(n && !joined.includes(n)) { joined.push(n); switchChan(n); document.getElementById('chan-in').value = ""; }
     };
 
-    window.leave = (name) => {
-        joined = joined.filter(c => c !== name);
-        if(curChan === name) switchChan("Global");
-        else renderList();
-    };
-
-    window.updateProfile = () => {
-        me.nick = document.getElementById('nick-in').value;
-        me.color = document.getElementById('color-in').value;
-        update(ref(db, 'users/' + me.uid), me);
-        alert("Profil Güncellendi!");
-    };
+    window.leave = (name) => { joined = joined.filter(c => c !== name); if(curChan === name) switchChan("Global"); else renderList(); };
+    window.updateProfile = () => { me.nick = document.getElementById('nick-in').value; me.color = document.getElementById('color-in').value; update(ref(db, 'users/' + me.uid), me); alert("Kaydedildi!"); };
 </script>
 </body>
 </html>
