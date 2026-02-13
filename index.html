@@ -5,75 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global Chat & Kanal Sistemi</title>
     <style>
-        :root { --bg: #1a1a1a; --panel: #2d2d2d; --text: #e0e0e0; --accent: #7289da; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; }
+        :root { --bg: #1a1a1a; --panel: #2d2d2d; --text: #e0e0e0; --accent: #7289da; --active: #43b581; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* Sidebar - Kanal ve Profil */
-        #sidebar { width: 260px; background: var(--panel); border-right: 1px solid #444; display: flex; flex-direction: column; padding: 15px; }
-        .input-group { margin-bottom: 20px; }
+        /* Sidebar */
+        #sidebar { width: 260px; background: var(--panel); border-right: 1px solid #444; display: flex; flex-direction: column; padding: 15px; overflow-y: auto; }
+        .input-group { margin-bottom: 15px; }
         input, button { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: none; outline: none; box-sizing: border-box; }
         input { background: #40444b; color: white; }
-        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; }
-        button:hover { opacity: 0.9; }
+        button { background: var(--accent); color: white; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
 
-        /* Main Chat Area */
-        #chat-area { flex: 1; display: flex; flex-direction: column; }
+        /* Kanal Listesi */
+        .section-title { font-size: 0.8em; color: #888; text-transform: uppercase; margin: 15px 0 5px; font-weight: bold; }
+        #channel-list { display: flex; flex-direction: column; gap: 5px; }
+        .channel-item { padding: 10px; background: #36393f; border-radius: 5px; cursor: pointer; font-size: 0.9em; transition: 0.2s; border-left: 3px solid transparent; }
+        .channel-item:hover { background: #40444b; }
+        .channel-item.active { background: #40444b; border-left-color: var(--active); color: white; }
+
+        /* Ana Alan */
+        #main-container { flex: 1; display: flex; flex-direction: column; }
+        #chat-header { padding: 15px; background: var(--panel); border-bottom: 1px solid #444; font-weight: bold; }
         #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 8px 12px; border-radius: 8px; background: #32353b; max-width: 80%; word-wrap: break-word; }
+        .message { padding: 10px 15px; border-radius: 8px; background: #32353b; max-width: 85%; align-self: flex-start; }
         .msg-header { font-size: 0.85em; font-weight: bold; margin-bottom: 4px; }
 
         /* Üye Menüsü */
         #member-menu { width: 200px; background: var(--panel); border-left: 1px solid #444; padding: 15px; }
+        @media (max-width: 768px) { #member-menu { display: none; } } /* Mobilde üyeleri gizle */
         .member-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9em; }
         .kick-btn { background: #f04747; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.7em; }
 
-        /* Alt Mesaj Alanı */
-        #input-area { padding: 20px; background: var(--bg); display: flex; gap: 10px; }
-        #msg-input { flex: 1; }
-        #color-picker { width: 45px; height: 40px; padding: 0; cursor: pointer; margin: 0;}
-
-        .hidden { display: none !important; }
+        #input-area { padding: 15px; background: var(--bg); display: flex; gap: 10px; border-top: 1px solid #333; }
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h3>Sohbet Global</h3>
+    <h3 style="margin-top:0;">Sohbet Global</h3>
+    
     <div class="input-group">
-        <label>Nick:</label>
-        <input type="text" id="nick-input" placeholder="Nick yazın...">
-        <button onclick="applyFancyNick()">Şekilli Yap</button>
-        <label style="margin-top:10px; display:block;">Renk:</label>
-        <input type="color" id="color-picker" value="#ffffff">
-        <button onclick="updateProfile()" style="margin-top:5px; background: #43b581;">Güncelle</button>
+        <input type="text" id="nick-input" placeholder="Nick...">
+        <div style="display:flex; gap:5px; margin-top:5px;">
+            <button onclick="applyFancyNick()" style="flex:1;">Şekilli</button>
+            <input type="color" id="color-picker" value="#ffffff" style="width:50px; padding:2px; height:40px;">
+        </div>
+        <button onclick="updateProfile()" style="background: var(--active);">Kaydet</button>
     </div>
-    <hr style="width:100%; border: 0.5px solid #444;">
+
+    <div class="section-title">Yeni Kanal Aç/Katıl</div>
     <div class="input-group">
-        <label>Kanal (Örn: 123):</label>
         <input type="text" id="channel-input" placeholder="Kanal adı...">
-        <button onclick="joinChannel()">Giriş Yap</button>
+        <button onclick="joinChannelAction()">Giriş Yap</button>
     </div>
-    <div id="status" style="font-size: 0.8em; color: #aaa;">Bağlanılıyor...</div>
+
+    <div class="section-title">Kanallarım</div>
+    <div id="channel-list">
+        </div>
+    
+    <div id="status" style="font-size: 0.7em; color: #888; margin-top:auto; padding-top:10px;">Bağlanıyor...</div>
 </div>
 
-<div id="chat-area">
-    <div id="messages">
-        <div style="text-align:center; color: #888;">Lütfen bir kanala katılın.</div>
-    </div>
-    <div id="input-area" class="hidden">
-        <input type="text" id="msg-input" placeholder="Mesaj yazın...">
+<div id="main-container">
+    <div id="chat-header">Kanal: <span id="current-channel-name">Yükleniyor...</span></div>
+    <div id="messages"></div>
+    <div id="input-area">
+        <input type="text" id="msg-input" placeholder="Mesajınızı yazın...">
         <button onclick="sendMessage()" style="width: 80px;">Gönder</button>
     </div>
 </div>
 
-<div id="member-menu" class="hidden">
-    <h4>Üyeler</h4>
+<div id="member-menu">
+    <div class="section-title">Üyeler</div>
     <div id="member-list"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, remove, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, remove, update, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -92,9 +101,9 @@
 
     let myData = { uid: "", nick: "", color: "#ffffff" };
     let currentChannel = null;
-    let isCreator = false;
+    let myChannels = ["Global"]; // Varsayılan kanal
 
-    // 1. Anonim Giriş ve Player Atama
+    // Giriş ve Profil
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -110,69 +119,34 @@
                 }
                 document.getElementById('nick-input').value = myData.nick;
                 document.getElementById('color-picker').value = myData.color;
-                document.getElementById('status').innerText = "Giriş yapıldı: " + myData.nick;
+                document.getElementById('status').innerText = "Aktif: " + myData.nick;
+                
+                // İlk girişte Global'e bağlan
+                if(!currentChannel) switchChannel("Global");
             }, { onlyOnce: true });
         }
     });
 
-    // 2. Profil Güncelleme
-    window.updateProfile = () => {
-        const newNick = document.getElementById('nick-input').value;
-        const newColor = document.getElementById('color-picker').value;
-        if(newNick.trim() === "") return;
+    // Kanal Değiştirme ve Listeleme
+    window.switchChannel = (channelName) => {
+        if (currentChannel === channelName) return;
         
-        myData.nick = newNick;
-        myData.color = newColor;
-        update(ref(db, 'users/' + myData.uid), { nick: newNick, color: newColor });
-        alert("Profil güncellendi!");
-    };
+        // Önceki dinleyicileri temizle
+        if (currentChannel) {
+            off(ref(db, `channels/${currentChannel}/messages`));
+            off(ref(db, `channels/${currentChannel}/activeUsers`));
+            remove(ref(db, `channels/${currentChannel}/activeUsers/${myData.uid}`));
+        }
 
-    // 3. Şekilli Nick Fonksiyonu
-    window.applyFancyNick = () => {
-        const input = document.getElementById('nick-input');
-        const map = { 'a': 'α', 'b': 'в', 'c': '¢', 'd': '∂', 'e': 'є', 'f': 'ƒ', 'g': 'g', 'h': 'н', 'i': 'ι', 'j': 'נ', 'k': 'к', 'l': 'ℓ', 'm': 'м', 'n': 'η', 'o': 'σ', 'p': 'ρ', 'r': 'я', 's': 'ѕ', 't': 'т', 'u': 'υ', 'v': 'ν', 'y': 'у', 'z': 'z' };
-        input.value = input.value.split('').map(char => map[char.toLowerCase()] || char).join('');
-    };
+        currentChannel = channelName;
+        document.getElementById('current-channel-name').innerText = channelName;
+        renderChannelList();
 
-    // 4. Kanal Giriş ve Ban Kontrolü
-    window.joinChannel = async () => {
-        const channelName = document.getElementById('channel-input').value.trim();
-        if (!channelName) return;
+        // Kanala giriş kaydı
+        set(ref(db, `channels/${channelName}/activeUsers/${myData.uid}`), { nick: myData.nick, color: myData.color });
 
-        // Ban kontrolü
-        const banRef = ref(db, `channels/${channelName}/bannedUsers/${myData.uid}`);
-        onValue(banRef, (snapshot) => {
-            if (snapshot.exists()) {
-                alert("Bu kanaldan yasaklandınız!");
-                location.reload();
-            } else {
-                startChannel(channelName);
-            }
-        }, { onlyOnce: true });
-    };
-
-    function startChannel(name) {
-        currentChannel = name;
-        document.getElementById('input-area').classList.remove('hidden');
-        document.getElementById('member-menu').classList.remove('hidden');
-        document.getElementById('messages').innerHTML = `<div style="text-align:center; color: #888;">#${name} kanalına katıldınız.</div>`;
-
-        // Kurucu Kontrolü
-        const creatorRef = ref(db, `channels/${name}/creator`);
-        onValue(creatorRef, (snapshot) => {
-            if (!snapshot.exists()) {
-                set(creatorRef, myData.uid);
-                isCreator = true;
-            } else if (snapshot.val() === myData.uid) {
-                isCreator = true;
-            }
-        }, { onlyOnce: true });
-
-        // Üyeler listesine kendini ekle
-        set(ref(db, `channels/${name}/activeUsers/${myData.uid}`), { nick: myData.nick, color: myData.color });
-
-        // Mesajları Dinle
-        onValue(ref(db, `channels/${name}/messages`), (snapshot) => {
+        // Mesajları Getir
+        onValue(ref(db, `channels/${channelName}/messages`), (snapshot) => {
             const msgDiv = document.getElementById('messages');
             msgDiv.innerHTML = "";
             snapshot.forEach((child) => {
@@ -181,37 +155,45 @@
                     <div class="message">
                         <div class="msg-header" style="color: ${data.color}">${data.sender}</div>
                         <div>${data.text}</div>
-                    </div>
-                `;
+                    </div>`;
             });
             msgDiv.scrollTop = msgDiv.scrollHeight;
         });
 
-        // Üye Listesini Dinle
-        onValue(ref(db, `channels/${name}/activeUsers`), (snapshot) => {
+        // Üyeleri Getir
+        onValue(ref(db, `channels/${channelName}/activeUsers`), (snapshot) => {
             const listDiv = document.getElementById('member-list');
             listDiv.innerHTML = "";
             snapshot.forEach((child) => {
                 const user = child.val();
-                const isMe = child.key === myData.uid;
-                listDiv.innerHTML += `
-                    <div class="member-item">
-                        <span style="color: ${user.color}">${user.nick} ${isMe ? "(Sen)" : ""}</span>
-                        ${isCreator && !isMe ? `<button class="kick-btn" onclick="kickUser('${child.key}')">At</button>` : ""}
-                    </div>
-                `;
+                listDiv.innerHTML += `<div class="member-item"><span style="color:${user.color}">${user.nick}</span></div>`;
             });
+        });
+    };
+
+    function renderChannelList() {
+        const listDiv = document.getElementById('channel-list');
+        listDiv.innerHTML = "";
+        myChannels.forEach(ch => {
+            const activeClass = ch === currentChannel ? "active" : "";
+            listDiv.innerHTML += `<div class="channel-item ${activeClass}" onclick="switchChannel('${ch}')"># ${ch}</div>`;
         });
     }
 
-    // 5. Mesaj Gönder
+    window.joinChannelAction = () => {
+        const name = document.getElementById('channel-input').value.trim();
+        if(name && !myChannels.includes(name)) {
+            myChannels.push(name);
+            switchChannel(name);
+            document.getElementById('channel-input').value = "";
+        }
+    };
+
     window.sendMessage = () => {
         const input = document.getElementById('msg-input');
-        if (input.value.trim() === "" || !currentChannel) return;
-
+        if (!input.value.trim()) return;
         push(ref(db, `channels/${currentChannel}/messages`), {
             sender: myData.nick,
-            senderUid: myData.uid,
             text: input.value,
             color: myData.color,
             timestamp: serverTimestamp()
@@ -219,17 +201,20 @@
         input.value = "";
     };
 
-    // 6. Kişiyi At (Kick)
-    window.kickUser = (targetUid) => {
-        if (!isCreator) return;
-        if (confirm("Bu kişiyi kanaldan atmak istediğine emin misin?")) {
-            set(ref(db, `channels/${currentChannel}/bannedUsers/${targetUid}`), true);
-            remove(ref(db, `channels/${currentChannel}/activeUsers/${targetUid}`));
-            alert("Kullanıcı yasaklandı.");
-        }
+    window.updateProfile = () => {
+        const n = document.getElementById('nick-input').value;
+        const c = document.getElementById('color-picker').value;
+        update(ref(db, 'users/' + myData.uid), { nick: n, color: c });
+        myData.nick = n; myData.color = c;
+        if(currentChannel) set(ref(db, `channels/${currentChannel}/activeUsers/${myData.uid}`), { nick: n, color: c });
+        alert("Güncellendi!");
+    };
+
+    window.applyFancyNick = () => {
+        const input = document.getElementById('nick-input');
+        const map = { 'a': 'α', 'b': 'в', 's': 'ѕ', 'e': 'є', 'l': 'ℓ', 'm': 'м' }; // Örnek harfler
+        input.value = input.value.split('').map(char => map[char.toLowerCase()] || char).join('');
     };
 </script>
-
 </body>
 </html>
-
