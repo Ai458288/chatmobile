@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        .box { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; }
+        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 8px; margin: 5px 0; }
+        #auth-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:100;}
+        .msg-item { border-bottom: 1px solid #333; padding: 5px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+<div id="auth-screen">
+    <h3>YÖNETİM ŞİFRESİ</h3>
+    <input type="password" id="pass" placeholder="Şifre...">
+    <button onclick="login()">GİRİŞ</button>
+</div>
+
+<div id="admin-content" style="display:none;">
+    <h2>[ CHAT CONTROL PANEL ]</h2>
+    
+    <div class="box">
+        <h4>IP BAN SİSTEMİ</h4>
+        <input type="text" id="ban-ip" placeholder="IP (Örn: 1.2.3.4)">
+        <button onclick="banIp()">IP BANLA</button>
+    </div>
+
+    <div class="box">
+        <h4>RGB YETKİSİ</h4>
+        <input type="text" id="target-uid" placeholder="User UID">
+        <button onclick="setRGB(true)">RGB AÇ</button>
+        <button onclick="setRGB(false)">RGB KAPAT</button>
+    </div>
+
+    <div class="box">
+        <h4>MESAJ KONTROLÜ (Global)</h4>
+        <div id="msg-list"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEsgu3-BbMIKezTXerExBu6ODmRX-F13U",
+      authDomain: "chattheonlibe.firebaseapp.com",
+      databaseURL: "https://chattheonlibe-default-rtdb.firebaseio.com",
+      projectId: "chattheonlibe",
+      storageBucket: "chattheonlibe.firebasestorage.app",
+      messagingSenderId: "515915419900",
+      appId: "1:515915419900:web:f18286a157558671130779"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.login = () => {
+        if(document.getElementById('pass').value === 'chatsite23') {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadMsgs();
+        } else { alert("Hatalı!"); }
+    };
+
+    window.banIp = () => {
+        const ip = document.getElementById('ban-ip').value.replace(/\./g, '_');
+        set(ref(db, 'bans/' + ip), { banned: true });
+        alert("Banlandı!");
+    };
+
+    window.setRGB = (val) => {
+        const uid = document.getElementById('target-uid').value;
+        update(ref(db, 'users/' + uid), { isRGB: val });
+        alert("RGB güncellendi!");
+    };
+
+    function loadMsgs() {
+        onValue(ref(db, 'channels/Global/messages'), (s) => {
+            const box = document.getElementById('msg-list');
+            box.innerHTML = "";
+            s.forEach(m => {
+                const d = m.val();
+                box.innerHTML += `
+                <div class="msg-item">
+                    <span><b>${d.nick}:</b> ${d.text} <br><small>UID: ${d.uid}</small></span>
+                    <button onclick="delMsg('${m.key}')" style="color:red; border-color:red;">SİL</button>
+                </div>`;
+            });
+        });
+    }
+
+    window.delMsg = (key) => {
+        if(confirm("Silinsin mi?")) remove(ref(db, 'channels/Global/messages/' + key));
+    };
+</script>
+</body>
+</html>
