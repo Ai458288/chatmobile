@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v7 | Protected</title>
+    <title>ChatTheOnlibe v8 | Pro</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
-        
-        /* KOPYALAMAYI ENGELLEME */
         * { 
             box-sizing: border-box; margin: 0; padding: 0; 
-            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
-            -webkit-touch-callout: none;
+            -webkit-user-select: none; user-select: none; /* Kopyalama Engeli */
         }
+        html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
         
-        html, body { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: var(--bg); color: var(--text); }
-
-        /* RGB Efekti */
+        /* RGB Animasyonu */
         .rgb-nick {
             background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -27,33 +23,44 @@
         #ban-overlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: #ff0000; color: white; z-index: 10000; 
-            align-items: center; justify-content: center; font-size: 40px; font-weight: bold; 
+            align-items: center; justify-content: center; font-size: 32px; font-weight: bold; text-align: center;
         }
 
         #app { display: flex; height: 100vh; width: 100vw; }
-        #sidebar { width: 220px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
-        .p-3 { padding: 12px; border-bottom: 1px solid #333; }
-        .label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 6px; display: block; }
-        input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 6px; }
+        
+        /* Sidebar */
+        #sidebar { width: 200px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
+        .p-3 { padding: 10px; border-bottom: 1px solid #333; }
+        .label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 5px; font-size: 13px; }
         button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
-        .chan-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .chan-item { padding: 10px; border-radius: 4px; cursor: pointer; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .chan-list { flex: 1; overflow-y: auto; padding: 5px; }
+        .chan-item { padding: 8px; border-radius: 4px; cursor: pointer; margin-bottom: 2px; display: flex; justify-content: space-between; font-size: 13px; }
         .chan-item.active { background: #333; border-left: 3px solid var(--accent); }
 
-        #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        #input-zone { padding: 12px; background: var(--panel); border-bottom: 1px solid #333; }
-        .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 4px 12px; border-radius: 20px; }
-        #msg-input { flex: 1; background: transparent; border: none; padding: 8px; color: white; outline: none; }
+        /* Ana Alan Düzeni */
+        #main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; }
+        
+        #input-zone { 
+            padding: 10px; background: var(--panel); border-bottom: 1px solid #333; flex-shrink: 0; 
+        }
+        .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 4px 10px; border-radius: 20px; }
+        #msg-input { flex: 1; background: transparent; border: none; padding: 8px; color: white; outline: none; -webkit-user-select: text; user-select: text; }
+        #send-btn { width: auto; background: none; color: var(--accent); }
 
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; background: #121212; }
-        .message-line { font-size: 15px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .clickable-nick { cursor: help; font-weight: bold; margin-right: 5px; }
+        #messages { 
+            flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 6px; background: #121212;
+        }
+        .message-line { font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 4px; }
+        .nick-btn { cursor: pointer; font-weight: bold; margin-right: 5px; }
 
-        @media (max-width: 600px) { #sidebar { width: 115px; } }
+        @media (max-width: 600px) { #sidebar { width: 110px; } .chan-item { font-size: 11px; } }
     </style>
 </head>
-<body oncontextmenu="return false;"> <div id="ban-overlay">BAN-LAN-DIN</div>
+<body oncontextmenu="return false;">
+
+<div id="ban-overlay">SİTEDEN BANLANDIN</div>
 
 <div id="app">
     <div id="sidebar">
@@ -61,23 +68,23 @@
             <span class="label">Profil</span>
             <input type="text" id="nick-in" placeholder="Nick...">
             <div style="display:flex; gap:4px;">
-                <input type="color" id="color-in" value="#ffffff" style="width:35px; height:30px; border:none; cursor:pointer;">
-                <button onclick="updateProfile()" style="background:#2ecc71;">OK</button>
+                <input type="color" id="color-in" value="#ffffff" style="width:30px; height:25px; border:none; background:none;">
+                <button onclick="updateProfile()" style="background:#2ecc71; padding:2px;">OK</button>
             </div>
         </div>
         <div class="p-3">
-            <span class="label">Kanal</span>
-            <input type="text" id="chan-in" placeholder="Kanal adı...">
-            <button onclick="joinNew()">KATIL</button>
+            <span class="label">Yeni Kanal</span>
+            <input type="text" id="chan-in" placeholder="Ad...">
+            <button onclick="joinNew()" style="font-size:11px;">KATIL</button>
         </div>
         <div class="chan-list" id="chan-list"></div>
     </div>
 
     <div id="main">
         <div id="input-zone">
-            <div style="font-size:12px; font-weight:bold; color:var(--accent); margin-bottom:5px;"># <span id="cur-title">Global</span></div>
+            <div style="font-size:11px; font-weight:bold; color:var(--accent); margin-bottom:4px;"># <span id="cur-title">Global</span></div>
             <div class="input-row">
-                <input type="text" id="msg-input" placeholder="Mesaj..." onkeypress="if(event.key==='Enter') sendMsg()">
+                <input type="text" id="msg-input" placeholder="Mesaj yaz..." onkeypress="if(event.key==='Enter') sendMsg()">
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
         </div>
@@ -109,21 +116,22 @@
     let joined = JSON.parse(localStorage.getItem('myChans')) || ["Global"];
     let canSend = true;
 
-    // BAN KONTROLÜ
-    function checkBan(uid) {
+    // Ban Kontrolü
+    const checkBan = (uid) => {
         onValue(ref(db, 'bans/' + uid), (s) => {
-            if(s.exists()) {
+            if(s.exists()){
                 document.getElementById('ban-overlay').style.display = 'flex';
                 document.getElementById('app').style.display = 'none';
             }
         });
-    }
+    };
 
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
         if (user) {
             me.uid = user.uid;
             checkBan(user.uid);
+            // Profil bilgilerini sürekli dinle (Admin RGB verirse anında aktif olsun)
             onValue(ref(db, 'users/' + user.uid), (s) => {
                 if (!s.exists()) {
                     me.nick = "User" + Math.floor(Math.random()*999);
@@ -136,10 +144,7 @@
         }
     });
 
-    // Nick'e tıklandığında ID göster
-    window.showID = (uid, nick) => {
-        alert(`${nick} adlı kullanıcının ID'si: ${uid}\n(Bu ID'yi yönetim panelinde kullanabilirsiniz.)`);
-    };
+    window.showID = (uid, nick) => alert(`${nick} ID: ${uid}`);
 
     window.switchChan = (name) => {
         off(ref(db, `channels/${curChan}/messages`));
@@ -151,13 +156,9 @@
             box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
-                const nickClass = d.isRGB ? 'rgb-nick' : '';
-                const nickStyle = d.isRGB ? '' : `color:${d.color}`;
-                box.innerHTML += `
-                <div class="message-line">
-                    <span class="clickable-nick ${nickClass}" style="${nickStyle}" onclick="showID('${d.uid}', '${d.nick}')">${d.nick}:</span>
-                    <span>${d.text}</span>
-                </div>`;
+                const cls = d.isRGB ? 'rgb-nick' : '';
+                const sty = d.isRGB ? '' : `color:${d.color}`;
+                box.innerHTML += `<div class="message-line"><span class="nick-btn ${cls}" style="${sty}" onclick="showID('${d.uid}','${d.nick}')">${d.nick}:</span><span>${d.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         });
@@ -170,7 +171,7 @@
         joined.forEach(c => {
             list.innerHTML += `<div class="chan-item ${c===curChan?'active':''}">
                 <span onclick="switchChan('${c}')" style="flex:1;"># ${c}</span>
-                ${c!=='Global'?`<span onclick="leave('${c}')" style="color:red;font-weight:bold;">×</span>`:''}
+                ${c!=='Global'?`<span onclick="leave('${c}')" style="color:red;">×</span>`:''}
             </div>`;
         });
         localStorage.setItem('myChans', JSON.stringify(joined));
@@ -185,11 +186,11 @@
         });
         i.value = "";
         canSend = false;
-        let sec = 5;
         const btn = document.getElementById('send-btn');
+        let sec = 5;
         const timer = setInterval(() => {
             btn.innerText = sec + "s"; sec--;
-            if(sec < 0) { clearInterval(timer); canSend = true; btn.innerText = "GÖNDER"; }
+            if(sec<0){ clearInterval(timer); canSend = true; btn.innerText = "GÖNDER"; }
         }, 1000);
     };
 
@@ -198,12 +199,12 @@
         if(n && !joined.includes(n)) { joined.push(n); switchChan(n); document.getElementById('chan-in').value = ""; }
     };
 
-    window.leave = (n) => { joined = joined.filter(c => c !== n); if(curChan === n) switchChan("Global"); else renderList(); };
+    window.leave = (n) => { joined = joined.filter(c=>c!==n); if(curChan===n) switchChan("Global"); else renderList(); };
     window.updateProfile = () => {
         me.nick = document.getElementById('nick-in').value;
         me.color = document.getElementById('color-in').value;
         update(ref(db, 'users/' + me.uid), me);
-        alert("Profil güncellendi!");
+        alert("Güncellendi");
     };
 </script>
 </body>
