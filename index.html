@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v8 | Pro</title>
+    <title>ChatTheOnlibe v9 | Final</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
-        * { 
-            box-sizing: border-box; margin: 0; padding: 0; 
-            -webkit-user-select: none; user-select: none; /* Kopyalama Engeli */
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
         
-        /* RGB Animasyonu */
         .rgb-nick {
             background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -27,8 +23,6 @@
         }
 
         #app { display: flex; height: 100vh; width: 100vw; }
-        
-        /* Sidebar */
         #sidebar { width: 200px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .p-3 { padding: 10px; border-bottom: 1px solid #333; }
         .label { font-size: 10px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 5px; display: block; }
@@ -39,19 +33,13 @@
         .chan-item { padding: 8px; border-radius: 4px; cursor: pointer; margin-bottom: 2px; display: flex; justify-content: space-between; font-size: 13px; }
         .chan-item.active { background: #333; border-left: 3px solid var(--accent); }
 
-        /* Ana Alan Düzeni */
         #main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; }
-        
-        #input-zone { 
-            padding: 10px; background: var(--panel); border-bottom: 1px solid #333; flex-shrink: 0; 
-        }
+        #input-zone { padding: 10px; background: var(--panel); border-bottom: 1px solid #333; flex-shrink: 0; }
         .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 4px 10px; border-radius: 20px; }
         #msg-input { flex: 1; background: transparent; border: none; padding: 8px; color: white; outline: none; -webkit-user-select: text; user-select: text; }
         #send-btn { width: auto; background: none; color: var(--accent); }
 
-        #messages { 
-            flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 6px; background: #121212;
-        }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 6px; background: #121212; }
         .message-line { font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 4px; }
         .nick-btn { cursor: pointer; font-weight: bold; margin-right: 5px; }
 
@@ -111,7 +99,7 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    let me = { uid: "", nick: "", color: "#ffffff", isRGB: false };
+    let me = { uid: "", nick: "", color: "#ffffff", isRGB: false, noLimit: false };
     let curChan = localStorage.getItem('lastChan') || "Global";
     let joined = JSON.parse(localStorage.getItem('myChans')) || ["Global"];
     let canSend = true;
@@ -122,6 +110,10 @@
             if(s.exists()){
                 document.getElementById('ban-overlay').style.display = 'flex';
                 document.getElementById('app').style.display = 'none';
+            } else {
+                // Ban kaldırılmışsa ekranı geri aç
+                document.getElementById('ban-overlay').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
             }
         });
     };
@@ -131,7 +123,6 @@
         if (user) {
             me.uid = user.uid;
             checkBan(user.uid);
-            // Profil bilgilerini sürekli dinle (Admin RGB verirse anında aktif olsun)
             onValue(ref(db, 'users/' + user.uid), (s) => {
                 if (!s.exists()) {
                     me.nick = "User" + Math.floor(Math.random()*999);
@@ -180,18 +171,23 @@
     window.sendMsg = () => {
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
+
         push(ref(db, `channels/${curChan}/messages`), {
-            uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB || false,
-            text: i.value, time: serverTimestamp()
+            uid: me.uid, nick: me.nick, color: me.color, 
+            isRGB: me.isRGB || false, text: i.value, time: serverTimestamp()
         });
         i.value = "";
-        canSend = false;
-        const btn = document.getElementById('send-btn');
-        let sec = 5;
-        const timer = setInterval(() => {
-            btn.innerText = sec + "s"; sec--;
-            if(sec<0){ clearInterval(timer); canSend = true; btn.innerText = "GÖNDER"; }
-        }, 1000);
+
+        // EĞER NO-LIMIT YETKİSİ YOKSA BEKLEME SÜRESİ UYGULA
+        if(!me.noLimit) {
+            canSend = false;
+            const btn = document.getElementById('send-btn');
+            let sec = 5;
+            const timer = setInterval(() => {
+                btn.innerText = sec + "s"; sec--;
+                if(sec<0){ clearInterval(timer); canSend = true; btn.innerText = "GÖNDER"; }
+            }, 1000);
+        }
     };
 
     window.joinNew = () => {
