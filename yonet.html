@@ -2,13 +2,14 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel</title>
+    <title>Admin Panel v2 | Auto-Channel</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
         .box { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; }
-        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 8px; margin: 5px 0; }
+        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 8px; margin: 5px 0; cursor: pointer; }
         #auth-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:100;}
-        .msg-item { border-bottom: 1px solid #333; padding: 5px; display: flex; justify-content: space-between; }
+        .msg-item { border-bottom: 1px solid #222; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .chan-title { color: #f0f; font-weight: bold; border-bottom: 1px solid #f0f; margin-top: 15px; padding: 5px; }
     </style>
 </head>
 <body>
@@ -20,24 +21,20 @@
 </div>
 
 <div id="admin-content" style="display:none;">
-    <h2>[ CHAT CONTROL PANEL ]</h2>
+    <h2>[ CHAT SUPREME CONTROL ]</h2>
     
     <div class="box">
-        <h4>IP BAN SİSTEMİ</h4>
-        <input type="text" id="ban-ip" placeholder="IP (Örn: 1.2.3.4)">
-        <button onclick="banIp()">IP BANLA</button>
+        <h4>🔨 HIZLI İŞLEM</h4>
+        <input type="text" id="target-id" placeholder="Kullanıcı ID (Örn: 82IR7S...)">
+        <br>
+        <button onclick="action('ban')">BANLA</button>
+        <button onclick="action('rgb_on')">RGB VER</button>
+        <button onclick="action('rgb_off')">RGB AL</button>
     </div>
 
     <div class="box">
-        <h4>RGB YETKİSİ</h4>
-        <input type="text" id="target-uid" placeholder="User UID">
-        <button onclick="setRGB(true)">RGB AÇ</button>
-        <button onclick="setRGB(false)">RGB KAPAT</button>
-    </div>
-
-    <div class="box">
-        <h4>MESAJ KONTROLÜ (Global)</h4>
-        <div id="msg-list"></div>
+        <h4>🔴 TÜM KANALLAR VE MESAJLAR</h4>
+        <div id="master-list">Lütfen bekleyin, kanallar yükleniyor...</div>
     </div>
 </div>
 
@@ -62,39 +59,61 @@
         if(document.getElementById('pass').value === 'chatsite23') {
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
-            loadMsgs();
-        } else { alert("Hatalı!"); }
+            listenAllChannels();
+        } else { alert("Şifre Yanlış!"); }
     };
 
-    window.banIp = () => {
-        const ip = document.getElementById('ban-ip').value.replace(/\./g, '_');
-        set(ref(db, 'bans/' + ip), { banned: true });
-        alert("Banlandı!");
+    window.action = (type) => {
+        const id = document.getElementById('target-id').value.trim();
+        if(!id) return alert("ID girmelisin!");
+        
+        if(type === 'ban') set(ref(db, 'bans/' + id), { status: true });
+        if(type === 'rgb_on') update(ref(db, 'users/' + id), { isRGB: true });
+        if(type === 'rgb_off') update(ref(db, 'users/' + id), { isRGB: false });
+        alert("İşlem Başarılı!");
     };
 
-    window.setRGB = (val) => {
-        const uid = document.getElementById('target-uid').value;
-        update(ref(db, 'users/' + uid), { isRGB: val });
-        alert("RGB güncellendi!");
-    };
+    function listenAllChannels() {
+        // Tüm kanalları tek seferde dinle
+        onValue(ref(db, 'channels'), (snapshot) => {
+            const masterList = document.getElementById('master-list');
+            masterList.innerHTML = "";
+            
+            if(!snapshot.exists()) {
+                masterList.innerHTML = "Aktif kanal yok.";
+                return;
+            }
 
-    function loadMsgs() {
-        onValue(ref(db, 'channels/Global/messages'), (s) => {
-            const box = document.getElementById('msg-list');
-            box.innerHTML = "";
-            s.forEach(m => {
-                const d = m.val();
-                box.innerHTML += `
-                <div class="msg-item">
-                    <span><b>${d.nick}:</b> ${d.text} <br><small>UID: ${d.uid}</small></span>
-                    <button onclick="delMsg('${m.key}')" style="color:red; border-color:red;">SİL</button>
-                </div>`;
+            snapshot.forEach((chanSnap) => {
+                const chanName = chanSnap.key;
+                const messages = chanSnap.val().messages;
+                
+                // Kanal başlığı
+                const title = document.createElement('div');
+                title.className = "chan-title";
+                title.innerText = `# ${chanName}`;
+                masterList.appendChild(title);
+
+                if(messages) {
+                    Object.keys(messages).forEach(msgKey => {
+                        const m = messages[msgKey];
+                        const item = document.createElement('div');
+                        item.className = "msg-item";
+                        item.innerHTML = `
+                            <span>[${chanName}] <b>${m.nick}:</b> ${m.text} <br><small>ID: ${m.uid}</small></span>
+                            <button onclick="delMsg('${chanName}', '${msgKey}')" style="color:red; border-color:red;">SİL</button>
+                        `;
+                        masterList.appendChild(item);
+                    });
+                }
             });
         });
     }
 
-    window.delMsg = (key) => {
-        if(confirm("Silinsin mi?")) remove(ref(db, 'channels/Global/messages/' + key));
+    window.delMsg = (cName, mKey) => {
+        if(confirm("Silmek istiyor musun?")) {
+            remove(ref(db, `channels/${cName}/messages/${mKey}`));
+        }
     };
 </script>
 </body>
