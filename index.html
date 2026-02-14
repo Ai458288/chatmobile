@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v42 | VIP Edition</title>
+    <title>ChatTheOnlibe v43 | Fixed PlayerID</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -39,16 +39,10 @@
 
         /* CHANNELS */
         .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; font-size: 13px; cursor: pointer; border-radius: 5px; margin: 2px 8px; color: #aaa; }
-        .chan-item:hover { background: rgba(255,255,255,0.05); }
         .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
         .fixed-chan { color: #fff; font-weight: 500; }
         .sub-chan { padding-left: 25px; font-size: 12px; border-left: 2px solid #333; margin-left: 20px; }
         .leave-btn { color: #ff4747; font-weight: bold; padding: 0 8px; }
-
-        /* USER MODAL */
-        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 220px; max-height: 350px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 2000; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto; }
-        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 10px; }
-        .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; }
 
         /* INPUT AREA */
         #input-zone { padding: 10px; background: var(--panel); border-top: 1px solid #333; }
@@ -56,6 +50,10 @@
         #msg-input { flex: 1; background: none; border: none; color: white; padding: 12px 0; outline: none; padding-right: 50px; }
         #msg-counter { position: absolute; right: 85px; font-size: 9px; color: #555; pointer-events: none; }
         #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px; z-index: 2; }
+
+        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 220px; max-height: 350px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 2000; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto; }
+        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; }
 
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; }
         #overlay.active { display: block; }
@@ -126,13 +124,17 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    let pid = localStorage.getItem('player_id') || (Math.floor(Math.random() * 900) + 100);
-    localStorage.setItem('player_id', pid);
+    // PERSISTENT PLAYER ID
+    let pid = localStorage.getItem('player_id');
+    if(!pid) {
+        pid = (Math.floor(Math.random() * 900) + 100);
+        localStorage.setItem('player_id', pid);
+    }
 
     let me = { 
         uid: "", 
-        nick: localStorage.getItem('chat_nick') || "Player" + pid, 
-        color: localStorage.getItem('chat_color') || "#ffffff", 
+        nick: "Player" + pid, // Varsayılan isim
+        color: "#ffffff", 
         isRGB: false, banned: false, noLimit: false, online: true 
     };
 
@@ -142,7 +144,6 @@
     let isCurrentChanLocked = false;
     let canSend = true;
 
-    // --- SAYAÇ VE SINIR KONTROLÜ ---
     window.updateCounters = () => {
         const mInput = document.getElementById('msg-input');
         const nInput = document.getElementById('nick-in');
@@ -150,26 +151,13 @@
         const nCount = document.getElementById('nick-counter');
 
         if (me.noLimit) {
-            mCount.innerText = "VIP: ∞";
-            nCount.innerText = "VIP: ∞";
-            mInput.removeAttribute('maxlength');
-            nInput.removeAttribute('maxlength');
+            mCount.innerText = "VIP: ∞"; nCount.innerText = "VIP: ∞";
+            mInput.removeAttribute('maxlength'); nInput.removeAttribute('maxlength');
         } else {
             mCount.innerText = mInput.value.length + "/100";
             nCount.innerText = nInput.value.length + "/25";
-            mInput.maxLength = 100;
-            nInput.maxLength = 25;
+            mInput.maxLength = 100; nInput.maxLength = 25;
         }
-    };
-
-    window.toggleMenu = () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('overlay').classList.toggle('active');
-    };
-    document.getElementById('overlay').onclick = window.toggleMenu;
-    window.toggleUserList = () => {
-        const m = document.getElementById('user-modal');
-        m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 
     signInAnonymously(auth).then(() => {
@@ -182,15 +170,20 @@
                 onValue(userRef, (s) => {
                     if (s.exists()) {
                         const d = s.val();
-                        me.nick = d.nick || me.nick;
-                        me.color = d.color || me.color;
+                        // Eğer d.nick boşsa veya Player+ID formatındaysa yerel nicki koru
+                        me.nick = d.nick || "Player" + pid;
+                        me.color = d.color || "#ffffff";
                         me.isRGB = d.isRGB || false;
                         me.banned = d.banned || false;
                         me.noLimit = d.noLimit || false;
-                    } else { set(userRef, me); }
+                    } else { 
+                        set(userRef, me); 
+                    }
+                    
+                    // Input kutusuna ismi bas (Eğer Player+ID ise kutuyu boş bırak placeholder gibi çalışsın)
                     document.getElementById('nick-in').value = me.nick.startsWith("Player") ? "" : me.nick;
                     document.getElementById('color-in').value = me.color;
-                    window.updateCounters(); // VIP durumuna göre kutuları ayarla
+                    window.updateCounters();
                     window.switchChan(curChan);
                 });
 
@@ -209,7 +202,7 @@
                             b.onclick = () => window.location.href = 'yonet.html';
                             document.querySelector('.p-3').appendChild(b);
                         }
-                    } else { isAdmin = false; }
+                    }
                 });
             }
         });
@@ -231,15 +224,9 @@
             const settings = snap.val();
             let defaultLock = (name === "Duyuru" || name === "Uyarılar");
             isCurrentChanLocked = settings ? settings.isLocked : defaultLock;
-            
             const input = document.getElementById('msg-input');
-            if(isCurrentChanLocked && !isAdmin) {
-                input.placeholder = "🚫 YAZMA YETKİNİZ YOK";
-                input.disabled = true;
-            } else {
-                input.placeholder = "Mesaj...";
-                input.disabled = false;
-            }
+            input.placeholder = isCurrentChanLocked && !isAdmin ? "🚫 YAZMA YETKİNİZ YOK" : "Mesaj...";
+            input.disabled = isCurrentChanLocked && !isAdmin;
         });
 
         onValue(ref(db, `channels/${name}/messages`), (s) => {
@@ -260,8 +247,6 @@
         if(isCurrentChanLocked && !isAdmin) return;
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
-
-        // VIP Değilse 100 Karakter Kontrolü (Ek Güvenlik)
         if(!me.noLimit && i.value.length > 100) return alert("Mesaj çok uzun!");
 
         push(ref(db, `channels/${curChan}/messages`), {
@@ -282,16 +267,17 @@
     };
 
     window.updateProfile = () => {
-        const n = document.getElementById('nick-in').value.trim();
+        const nInput = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
         
-        if(n.length < 3) return alert("İsim en az 3 karakter olmalı!");
-        if(!me.noLimit && n.length > 25) return alert("İsim en fazla 25 karakter olmalı!");
+        // Eğer giriş kutusu boşsa ismini tekrar Player+ID yap
+        let finalNick = nInput === "" ? "Player" + pid : nInput;
 
-        update(ref(db, 'users/' + me.uid), { nick: n, color: c });
-        localStorage.setItem('chat_nick', n);
-        localStorage.setItem('chat_color', c);
-        alert("Kaydedildi!");
+        if(nInput !== "" && nInput.length < 3) return alert("İsim en az 3 karakter olmalı!");
+        if(!me.noLimit && nInput.length > 25) return alert("İsim en fazla 25 karakter olmalı!");
+
+        update(ref(db, 'users/' + me.uid), { nick: finalNick, color: c });
+        alert("Profil Güncellendi!");
     };
 
     window.copyMyID = () => { navigator.clipboard.writeText(me.uid); alert("ID Kopyalandı!"); };
@@ -302,10 +288,9 @@
         const fixed = ["Global", "Duyuru", "Uyarılar"];
         fixed.forEach(f => {
             const isSub = f !== "Global";
-            const icon = f === "Global" ? "🌍" : (f === "Duyuru" ? "📣" : "⚠️");
             l.innerHTML += `
                 <div class="chan-item fixed-chan ${isSub ? 'sub-chan' : ''} ${curChan === f ? 'active' : ''}" onclick="window.switchChan('${f}')">
-                    <span>${icon} ${f}</span>
+                    <span>${f === "Global" ? "🌍" : (f === "Duyuru" ? "📣" : "⚠️")} ${f}</span>
                 </div>`;
         });
         l.innerHTML += `<br><span class="label" style="padding:0 15px;">ÖZEL ODALAR & DM</span>`;
@@ -369,6 +354,7 @@
         });
     };
 
+    window.toggleMenu = () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); };
     document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') window.sendMsg(); };
 </script>
 </body>
