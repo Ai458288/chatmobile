@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v43 | Fixed PlayerID</title>
+    <title>ChatTheOnlibe v44 | Pro-UI</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -11,17 +11,23 @@
         html, body { height: 100dvh; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; }
         #app { display: flex; height: 100dvh; width: 100vw; overflow: hidden; }
 
-        /* SIDEBAR */
-        #sidebar { width: 250px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1001; }
+        /* SIDEBAR & CLOSE BUTTON */
+        #sidebar { width: 250px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1001; position: relative; }
+        #close-sidebar { display: none; position: absolute; top: 10px; right: 15px; font-size: 28px; color: #ff4747; cursor: pointer; font-weight: bold; }
+        
         @media (max-width: 768px) {
-            #sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 80%; }
-            #sidebar.open { transform: translateX(0); box-shadow: 10px 0 20px rgba(0,0,0,0.8); }
+            #sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 80%; }
+            #sidebar.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.9); }
+            #close-sidebar { display: block; } /* Sadece mobilde X butonu görünsün */
         }
+
+        /* OVERLAY - Boşluğa basınca kapatma */
+        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(2px); }
+        #overlay.active { display: block; }
 
         /* TOP BAR */
         #top-bar { height: 50px; background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #333; }
-        #menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        @media (max-width: 768px) { #menu-btn { display: block; } }
+        #menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 
         /* UI ELEMENTS */
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
@@ -39,6 +45,7 @@
 
         /* CHANNELS */
         .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; font-size: 13px; cursor: pointer; border-radius: 5px; margin: 2px 8px; color: #aaa; }
+        .chan-item:hover { background: rgba(255,255,255,0.05); }
         .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
         .fixed-chan { color: #fff; font-weight: 500; }
         .sub-chan { padding-left: 25px; font-size: 12px; border-left: 2px solid #333; margin-left: 20px; }
@@ -55,17 +62,18 @@
         .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 10px; }
         .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; }
 
-        #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; }
-        #overlay.active { display: block; }
         .rgb-nick { background: linear-gradient(to right, red, orange, yellow, green, cyan, blue, violet, red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: move-bg 3s linear infinite; font-weight: bold; }
         @keyframes move-bg { to { background-position: 200% center; } }
     </style>
 </head>
 <body>
 
-<div id="overlay"></div>
+<div id="overlay" onclick="toggleMenu()"></div>
+
 <div id="app">
     <div id="sidebar">
+        <span id="close-sidebar" onclick="toggleMenu()">×</span>
+        
         <div class="p-3">
             <div class="label-row">
                 <span class="label">PROFİL</span>
@@ -124,16 +132,12 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // PERSISTENT PLAYER ID
-    let pid = localStorage.getItem('player_id');
-    if(!pid) {
-        pid = (Math.floor(Math.random() * 900) + 100);
-        localStorage.setItem('player_id', pid);
-    }
+    let pid = localStorage.getItem('player_id') || (Math.floor(Math.random() * 900) + 100);
+    localStorage.setItem('player_id', pid);
 
     let me = { 
         uid: "", 
-        nick: "Player" + pid, // Varsayılan isim
+        nick: "Player" + pid, 
         color: "#ffffff", 
         isRGB: false, banned: false, noLimit: false, online: true 
     };
@@ -143,6 +147,14 @@
     let isAdmin = false;
     let isCurrentChanLocked = false;
     let canSend = true;
+
+    // --- MENÜ KONTROLÜ ---
+    window.toggleMenu = () => {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+    };
 
     window.updateCounters = () => {
         const mInput = document.getElementById('msg-input');
@@ -170,17 +182,12 @@
                 onValue(userRef, (s) => {
                     if (s.exists()) {
                         const d = s.val();
-                        // Eğer d.nick boşsa veya Player+ID formatındaysa yerel nicki koru
                         me.nick = d.nick || "Player" + pid;
                         me.color = d.color || "#ffffff";
                         me.isRGB = d.isRGB || false;
                         me.banned = d.banned || false;
                         me.noLimit = d.noLimit || false;
-                    } else { 
-                        set(userRef, me); 
-                    }
-                    
-                    // Input kutusuna ismi bas (Eğer Player+ID ise kutuyu boş bırak placeholder gibi çalışsın)
+                    } else { set(userRef, me); }
                     document.getElementById('nick-in').value = me.nick.startsWith("Player") ? "" : me.nick;
                     document.getElementById('color-in').value = me.color;
                     window.updateCounters();
@@ -254,7 +261,6 @@
         });
         i.value = "";
         window.updateCounters();
-        
         if(!me.noLimit) {
             canSend = false;
             let s = 5;
@@ -269,13 +275,9 @@
     window.updateProfile = () => {
         const nInput = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
-        
-        // Eğer giriş kutusu boşsa ismini tekrar Player+ID yap
         let finalNick = nInput === "" ? "Player" + pid : nInput;
-
         if(nInput !== "" && nInput.length < 3) return alert("İsim en az 3 karakter olmalı!");
         if(!me.noLimit && nInput.length > 25) return alert("İsim en fazla 25 karakter olmalı!");
-
         update(ref(db, 'users/' + me.uid), { nick: finalNick, color: c });
         alert("Profil Güncellendi!");
     };
@@ -338,6 +340,7 @@
         const dm = [me.nick, target].sort().join('~');
         if(!joined.includes(dm)) { joined.push(dm); localStorage.setItem('joined_chans', JSON.stringify(joined)); }
         window.switchChan(dm);
+        window.toggleUserList = () => { const m = document.getElementById('user-modal'); m.style.display = 'none'; };
         window.toggleUserList();
     };
 
@@ -354,7 +357,11 @@
         });
     };
 
-    window.toggleMenu = () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('active'); };
+    window.toggleUserList = () => {
+        const m = document.getElementById('user-modal');
+        m.style.display = m.style.display === 'block' ? 'none' : 'block';
+    };
+
     document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') window.sendMsg(); };
 </script>
 </body>
