@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v41 | Global Hierarchy</title>
+    <title>ChatTheOnlibe v42 | VIP Edition</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -25,7 +25,10 @@
 
         /* UI ELEMENTS */
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
-        .label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; padding-left: 8px; }
+        .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 8px; }
+        .label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; }
+        .counter { font-size: 9px; color: #555; }
+        
         input[type="text"] { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; margin-bottom: 5px; }
         .save-btn { background: #2ecc71; color: white; width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
@@ -49,9 +52,10 @@
 
         /* INPUT AREA */
         #input-zone { padding: 10px; background: var(--panel); border-top: 1px solid #333; }
-        .input-box { background: #2a2a2a; border-radius: 20px; padding: 0 15px; display: flex; align-items: center; }
-        #msg-input { flex: 1; background: none; border: none; color: white; padding: 12px 0; outline: none; }
-        #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px; }
+        .input-box { background: #2a2a2a; border-radius: 20px; padding: 0 15px; display: flex; align-items: center; position: relative; }
+        #msg-input { flex: 1; background: none; border: none; color: white; padding: 12px 0; outline: none; padding-right: 50px; }
+        #msg-counter { position: absolute; right: 85px; font-size: 9px; color: #555; pointer-events: none; }
+        #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px; z-index: 2; }
 
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; }
         #overlay.active { display: block; }
@@ -65,15 +69,17 @@
 <div id="app">
     <div id="sidebar">
         <div class="p-3">
-            <span class="label">PROFİL</span>
-            <input type="text" id="nick-in" placeholder="Kullanıcı adı..." maxlength="15">
+            <div class="label-row">
+                <span class="label">PROFİL</span>
+                <span id="nick-counter" class="counter">0/25</span>
+            </div>
+            <input type="text" id="nick-in" placeholder="Kullanıcı adı..." oninput="updateCounters()">
             <input type="color" id="color-in" style="width:100%; height:30px; border:none; background:none; cursor:pointer;">
             <button class="save-btn" onclick="updateProfile()">KAYDET</button>
             <div id="uid-box" style="font-size: 9px; color: #555; margin-top: 8px; cursor: pointer; text-align: center;" onclick="copyMyID()">ID YÜKLENİYOR...</div>
         </div>
         
-        <div id="chan-list" style="flex:1; overflow-y:auto; padding-top:10px;">
-            </div>
+        <div id="chan-list" style="flex:1; overflow-y:auto; padding-top:10px;"></div>
 
         <div class="p-3" style="border-top: 1px solid #333; border-bottom: none;">
             <span class="label">YENİ ODA</span>
@@ -91,7 +97,8 @@
         <div id="messages"></div>
         <div id="input-zone">
             <div class="input-box">
-                <input type="text" id="msg-input" placeholder="Mesaj..." maxlength="100">
+                <input type="text" id="msg-input" placeholder="Mesaj..." oninput="updateCounters()">
+                <span id="msg-counter" class="counter">0/100</span>
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
         </div>
@@ -135,7 +142,26 @@
     let isCurrentChanLocked = false;
     let canSend = true;
 
-    // UI Fonksiyonları
+    // --- SAYAÇ VE SINIR KONTROLÜ ---
+    window.updateCounters = () => {
+        const mInput = document.getElementById('msg-input');
+        const nInput = document.getElementById('nick-in');
+        const mCount = document.getElementById('msg-counter');
+        const nCount = document.getElementById('nick-counter');
+
+        if (me.noLimit) {
+            mCount.innerText = "VIP: ∞";
+            nCount.innerText = "VIP: ∞";
+            mInput.removeAttribute('maxlength');
+            nInput.removeAttribute('maxlength');
+        } else {
+            mCount.innerText = mInput.value.length + "/100";
+            nCount.innerText = nInput.value.length + "/25";
+            mInput.maxLength = 100;
+            nInput.maxLength = 25;
+        }
+    };
+
     window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('active');
@@ -164,6 +190,7 @@
                     } else { set(userRef, me); }
                     document.getElementById('nick-in').value = me.nick.startsWith("Player") ? "" : me.nick;
                     document.getElementById('color-in').value = me.color;
+                    window.updateCounters(); // VIP durumuna göre kutuları ayarla
                     window.switchChan(curChan);
                 });
 
@@ -191,11 +218,9 @@
     window.switchChan = (name) => {
         off(ref(db, `channels/${curChan}/messages`));
         off(ref(db, `channels/${curChan}/settings`));
-        
         curChan = name;
         localStorage.setItem('last_chan', name);
         
-        // Başlık Düzenleme
         let titleIcon = "# ";
         if(name === "Duyuru") titleIcon = "📣 ";
         if(name === "Uyarılar") titleIcon = "⚠️ ";
@@ -204,7 +229,6 @@
 
         onValue(ref(db, `channels/${name}/settings`), (snap) => {
             const settings = snap.val();
-            // Duyuru ve Uyarılar varsayılan olarak kilitli olsun (Admin hariç)
             let defaultLock = (name === "Duyuru" || name === "Uyarılar");
             isCurrentChanLocked = settings ? settings.isLocked : defaultLock;
             
@@ -236,10 +260,16 @@
         if(isCurrentChanLocked && !isAdmin) return;
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
+
+        // VIP Değilse 100 Karakter Kontrolü (Ek Güvenlik)
+        if(!me.noLimit && i.value.length > 100) return alert("Mesaj çok uzun!");
+
         push(ref(db, `channels/${curChan}/messages`), {
             uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp()
         });
         i.value = "";
+        window.updateCounters();
+        
         if(!me.noLimit) {
             canSend = false;
             let s = 5;
@@ -254,7 +284,10 @@
     window.updateProfile = () => {
         const n = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
-        if(n.length < 3 || n.length > 15) return alert("İsim 3-15 karakter olmalı!");
+        
+        if(n.length < 3) return alert("İsim en az 3 karakter olmalı!");
+        if(!me.noLimit && n.length > 25) return alert("İsim en fazla 25 karakter olmalı!");
+
         update(ref(db, 'users/' + me.uid), { nick: n, color: c });
         localStorage.setItem('chat_nick', n);
         localStorage.setItem('chat_color', c);
@@ -265,9 +298,7 @@
 
     window.renderList = () => {
         const l = document.getElementById('chan-list');
-        l.innerHTML = `<span class="label">SABİT KANALLAR</span>`;
-        
-        // Sabit Kanalları Ekle (Global Grubu)
+        l.innerHTML = `<span class="label" style="padding:0 15px;">SABİT KANALLAR</span>`;
         const fixed = ["Global", "Duyuru", "Uyarılar"];
         fixed.forEach(f => {
             const isSub = f !== "Global";
@@ -277,8 +308,7 @@
                     <span>${icon} ${f}</span>
                 </div>`;
         });
-
-        l.innerHTML += `<br><span class="label">ÖZEL ODALAR & DM</span>`;
+        l.innerHTML += `<br><span class="label" style="padding:0 15px;">ÖZEL ODALAR & DM</span>`;
         joined.filter(c => !fixed.includes(c)).forEach(c => {
             let dName = c.includes('~') ? "💬 " + c.replace(me.nick,'').replace('~','') : "# " + c;
             l.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}" onclick="window.switchChan('${c}')"><span>${dName}</span><span class="leave-btn" onclick="window.leaveChan(event, '${c}')">×</span></div>`;
