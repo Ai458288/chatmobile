@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Master Admin v38 | Pro Management</title>
+    <title>Master Admin v39 | Pro Management</title>
     <style>
         body { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
         .card { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; background: #050505; box-shadow: 0 0 10px rgba(0,255,0,0.2); }
@@ -14,6 +14,8 @@
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
         .btn-danger { color: #ff4747; border-color: #ff4747; }
         .btn-danger:hover { background: #ff4747; color: #000; }
+        .btn-warning { color: #f1c40f; border-color: #f1c40f; }
+        .btn-warning:hover { background: #f1c40f; color: #000; }
         small { color: #888; display: block; margin-top: 4px; }
         #master-list { max-height: 500px; overflow-y: auto; }
     </style>
@@ -29,11 +31,11 @@
 </div>
 
 <div id="admin-panel" style="display:none;">
-    <h2>[ SİSTEM YÖNETİMİ V38 ]</h2>
+    <h2>[ SİSTEM YÖNETİMİ V39 ]</h2>
     
     <div class="card">
-        <h4>HIZLI KOMUTLAR</h4>
-        <input type="text" id="target-id" placeholder="Kullanıcı UID (Örn: J8kL2...)" style="width:100%; max-width:400px;">
+        <h4>HIZLI KOMUTLAR (KULLANICI)</h4>
+        <input type="text" id="target-id" placeholder="Kullanıcı UID..." style="width:100%; max-width:400px;">
         <div class="btn-group">
             <button onclick="doAction('ban')">BANLA</button>
             <button onclick="doAction('unban')">BAN KALDIR</button>
@@ -44,6 +46,16 @@
             <button onclick="doAction('add_admin')" style="color:#f0f; border-color:#f0f;">ADMİN VER</button>
             <button onclick="doAction('remove_admin')" style="color:#f0f; border-color:#f0f;">ADMİN AL</button>
         </div>
+    </div>
+
+    <div class="card">
+        <h4>ODA YÖNETİMİ (LOCK/UNLOCK)</h4>
+        <input type="text" id="target-chan" placeholder="Oda Adı (Örn: Global veya 24)" style="width:100%; max-width:400px;">
+        <div class="btn-group">
+            <button class="btn-warning" onclick="lockChan(true)">🔒 ODAYI KİLİTLE (LOCK)</button>
+            <button onclick="lockChan(false)">🔓 KİLİDİ AÇ (UNLOCK)</button>
+        </div>
+        <small style="margin-top:10px;">* Kilitli odalarda sadece adminler konuşabilir.</small>
     </div>
 
     <div class="card" style="border-color: #ff4747;">
@@ -76,11 +88,9 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // Otomatik Kimlik Kontrolü
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            // Eğer veritabanında bu ID adminse şifre sorma
             onValue(ref(db, 'system_admins/' + user.uid), (s) => {
                 if (s.exists() && s.val().admin === true) openPanel();
             });
@@ -98,7 +108,7 @@
         startMonitor();
     }
 
-    // KOMUT SİSTEMİ
+    // KULLANICI KOMUTLARI
     window.doAction = (act) => {
         const id = document.getElementById('target-id').value.trim();
         if(!id) return alert("Hata: Hedef ID belirtilmedi!");
@@ -113,27 +123,31 @@
             case 'add_admin': set(ref(db, 'system_admins/'+id), {admin: true}); break;
             case 'remove_admin': remove(ref(db, 'system_admins/'+id)); break;
         }
-        alert("Sistem Güncellendi!");
+        alert("İşlem Başarılı!");
     };
 
-    // TÜM VERİYİ SİLME
+    // ODA KİLİTLEME FONKSİYONU
+    window.lockChan = (status) => {
+        const chan = document.getElementById('target-chan').value.trim();
+        if(!chan) return alert("Hata: Oda adı girilmedi!");
+        
+        update(ref(db, `channels/${chan}/settings`), { isLocked: status });
+        alert(chan + " odası " + (status ? "KİLİTLENDİ 🔒" : "AÇILDI 🔓"));
+    };
+
     window.wipeAllData = () => {
-        if(confirm("DİKKAT! Tüm mesajlar ve kanallar silinecek. Emin misin?")) {
+        if(confirm("DİKKAT! Tüm veriler silinecek?")) {
             remove(ref(db, 'channels'));
-            alert("Tüm kanallar sıfırlandı.");
+            alert("Sıfırlandı.");
         }
     };
 
-    // MESAJ TAKİBİ VE SİLME
     function startMonitor() {
         onValue(ref(db, 'channels'), (snap) => {
             const list = document.getElementById('master-list');
             list.innerHTML = "";
             const data = snap.val();
-            if(!data) {
-                list.innerHTML = "Sohbet temiz.";
-                return;
-            }
+            if(!data) return list.innerHTML = "Sohbet temiz.";
 
             Object.keys(data).forEach(cName => {
                 const msgs = data[cName].messages;
@@ -142,18 +156,12 @@
                         const m = msgs[mKey];
                         const item = document.createElement('div');
                         item.className = "msg-item";
-                        item.innerHTML = `
-                            <div>
-                                <b style="color:#fff">${m.nick}:</b> ${m.text}
-                                <small>UID: ${m.uid || 'Bilinmiyor'} | Oda: ${cName}</small>
-                            </div>
-                        `;
+                        item.innerHTML = `<div><b>${m.nick}:</b> ${m.text}<small>ID: ${m.uid || '??'} | Oda: ${cName}</small></div>`;
                         const delBtn = document.createElement('button');
                         delBtn.innerText = "SİL";
                         delBtn.onclick = () => remove(ref(db, `channels/${cName}/messages/${mKey}`));
-                        
                         item.appendChild(delBtn);
-                        list.prepend(item); // En yeni mesajı üste koy
+                        list.prepend(item);
                     });
                 }
             });
@@ -162,3 +170,4 @@
 </script>
 </body>
 </html>
+
