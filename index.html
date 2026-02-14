@@ -3,55 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v26 | Final Fix</title>
+    <title>ChatTheOnlibe v27 | Industrial Grade</title>
     <style>
-        :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
-        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
-        html, body { height: 100dvh; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; }
-        #app { display: flex; height: 100dvh; width: 100vw; overflow: hidden; position: relative; }
+        :root { --bg: #0b0b0b; --panel: #161616; --accent: #5865f2; --text: #f0f0f0; --border: #333; }
+        
+        /* GÜVENLİK: KOPYALAMA ENGELİ */
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* SIDEBAR */
+        html, body { height: 100dvh; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
+        #app { display: flex; height: 100dvh; width: 100vw; position: relative; }
+
+        /* SIDEBAR (YAN MENÜ) */
         #sidebar { 
-            width: 260px; background: var(--panel); border-right: 1px solid #333; 
-            display: flex; flex-direction: column; flex-shrink: 0; 
-            transition: transform 0.3s ease; z-index: 999;
+            width: 280px; background: var(--panel); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000;
         }
 
-        #menu-toggle { display: none; font-size: 24px; cursor: pointer; color: white; background: none; border: none; padding: 10px; z-index: 1000; }
+        /* MOBİL DURUMU */
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 80%; }
+            #sidebar.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+        }
 
-        /* MAIN */
-        #main { flex: 1; display: flex; flex-direction: column; height: 100dvh; min-width: 0; background: #121212; position: relative; }
-        #top-bar { height: 55px; background: var(--panel); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #333; flex-shrink: 0; gap: 15px; }
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message-line { word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; font-size: 14px; line-height: 1.5; }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; backdrop-filter: blur(2px); }
+        #sidebar-overlay.show { display: block; }
+
+        /* HEADER */
+        #top-bar { height: 60px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; gap: 12px; flex-shrink: 0; }
+        #menu-toggle { font-size: 24px; background: none; border: none; color: white; cursor: pointer; display: none; }
+        @media (max-width: 768px) { #menu-toggle { display: block; } }
+
+        /* MESSAGES */
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .msg { word-wrap: break-word; overflow-wrap: break-word; font-size: 14.5px; line-height: 1.5; }
 
         /* CHANNELS */
-        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; font-size: 14px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; color: #aaa; }
-        .chan-item.active { background: rgba(88, 101, 242, 0.15); color: var(--accent); font-weight: bold; }
-        .leave-btn { color: #ff4747; font-size: 18px; padding: 0 5px; cursor: pointer; }
+        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin: 2px 8px; cursor: pointer; border-radius: 8px; color: #888; transition: 0.2s; }
+        .chan-item:hover { background: #222; }
+        .chan-item.active { background: rgba(88, 101, 242, 0.15); color: var(--accent); font-weight: 600; }
+        .leave-btn { color: #ff4747; opacity: 0.5; padding: 5px; font-size: 18px; }
+        .leave-btn:hover { opacity: 1; }
 
-        /* INPUT */
-        #input-zone { padding: 12px; background: var(--panel); border-top: 1px solid #333; }
-        .input-container { position: relative; background: #2a2a2a; border-radius: 25px; padding: 0 15px; display: flex; align-items: center; }
-        #msg-input { flex: 1; background: transparent; border: none; padding: 12px 0; color: white; outline: none; font-size: 15px; -webkit-user-select: text; user-select: text; }
-        #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px; margin-left: 5px; font-size: 14px; }
+        /* INPUT AREA */
+        #input-zone { padding: 15px; background: var(--panel); border-top: 1px solid var(--border); }
+        .input-box { display: flex; align-items: center; background: #252525; border-radius: 25px; padding: 4px 15px; border: 1px solid transparent; transition: 0.2s; }
+        .input-box:focus-within { border-color: var(--accent); background: #2a2a2a; }
+        #msg-input { flex: 1; background: none; border: none; color: white; padding: 10px 0; outline: none; font-size: 15px; }
+        #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 8px 12px; font-size: 14px; }
 
-        /* PROFILE */
-        .p-3 { padding: 15px; border-bottom: 1px solid #333; }
-        .label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 10px; display: block; }
-        #nick-in, #chan-in { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none; margin-bottom: 8px; }
-        #color-in { width: 100%; height: 35px; border: 1px solid #444; background: transparent; cursor: pointer; border-radius: 6px; margin-bottom: 8px; padding: 0; }
-        .save-btn { background: #2ecc71; color: white; width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-        /* MOBILE */
-        @media (max-width: 768px) {
-            #menu-toggle { display: block; }
-            #sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 75%; }
-            #sidebar.open { transform: translateX(0); }
-            #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 998; }
-            #sidebar-overlay.show { display: block; }
-        }
-
+        /* UI ELEMENTS */
+        .p-3 { padding: 15px; border-bottom: 1px solid var(--border); }
+        .label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; margin-bottom: 12px; display: block; letter-spacing: 0.5px; }
+        input[type="text"] { width: 100%; background: #252525; border: 1px solid #333; color: white; padding: 10px; border-radius: 6px; font-size: 13px; outline: none; margin-bottom: 8px; }
+        input[type="color"] { width: 100%; height: 35px; border: 1px solid #333; background: none; cursor: pointer; border-radius: 6px; margin-bottom: 10px; }
+        .btn-green { background: #2ecc71; color: white; width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        
         .rgb-nick { background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: move-bg 3s linear infinite; font-weight: bold; }
         @keyframes move-bg { to { background-position: 200% center; } }
     </style>
@@ -66,27 +74,29 @@
             <span class="label">PROFİL</span>
             <input type="text" id="nick-in" placeholder="Nickname">
             <input type="color" id="color-in">
-            <button class="save-btn" id="btn-save-profile">KAYDET</button>
+            <button class="btn-green" onclick="updateProfile()">KAYDET</button>
         </div>
         <div class="p-3">
             <span class="label">YENİ ODA</span>
             <input type="text" id="chan-in" placeholder="Oda Adı">
-            <button id="btn-join-chan" class="save-btn" style="background:var(--accent)">KATIL</button>
+            <button onclick="joinNew()" class="btn-green" style="background:var(--accent)">KATIL</button>
         </div>
-        <div id="chan-list" style="flex:1; overflow-y:auto; padding:10px;"></div>
+        <div id="chan-list" style="flex:1; overflow-y:auto; padding-top:10px;"></div>
     </div>
 
     <div id="main">
         <div id="top-bar">
-            <button id="menu-toggle">☰</button>
-            <span id="cur-title" style="font-weight:bold; color:var(--accent);"># Global</span>
-            <span id="cooldown-info" style="margin-left:auto; font-size:12px; color:#ff4747;"></span>
+            <button id="menu-toggle" onclick="toggleMenu()">☰</button>
+            <span id="cur-title" style="font-weight:bold; color:var(--accent); font-size:16px;"># Global</span>
+            <span id="cd-display" style="margin-left:auto; color:#ff4747; font-weight:bold; font-size:13px;"></span>
         </div>
+        
         <div id="messages"></div>
+
         <div id="input-zone">
-            <div class="input-container">
-                <input type="text" id="msg-input" placeholder="Mesaj..." maxlength="100">
-                <button id="send-btn">GÖNDER</button>
+            <div class="input-box">
+                <input type="text" id="msg-input" placeholder="Mesaj gönder..." maxlength="100">
+                <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
         </div>
     </div>
@@ -111,68 +121,107 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
+    // Global Değişkenler
     let me = { uid: "", nick: "", color: "#ffffff", isRGB: false, noLimit: false, online: true };
     let curChan = localStorage.getItem('last_chan') || "Global";
     let joined = JSON.parse(localStorage.getItem('joined_chans')) || ["Global"];
     let canSend = true;
 
-    // MENÜ FONKSİYONU
-    const toggleMenu = () => {
+    // FONKSİYONLARI WINDOW'A BAĞLA (HTML'DEN ERİŞİM İÇİN)
+    window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('sidebar-overlay').classList.toggle('show');
-        document.getElementById('menu-toggle').innerText = document.getElementById('sidebar').classList.contains('open') ? "✕" : "☰";
+        const btn = document.getElementById('menu-toggle');
+        btn.innerText = document.getElementById('sidebar').classList.contains('open') ? "✕" : "☰";
     };
-    document.getElementById('menu-toggle').onclick = toggleMenu;
-    document.getElementById('sidebar-overlay').onclick = toggleMenu;
+    document.getElementById('sidebar-overlay').onclick = window.toggleMenu;
 
-    // MESAJ GÖNDERME FONKSİYONU (FIXED)
-    const handleSend = () => {
+    window.updateProfile = () => {
+        const n = document.getElementById('nick-in').value.trim();
+        const c = document.getElementById('color-in').value;
+        if(n) { 
+            update(ref(db, 'users/' + me.uid), { nick: n, color: c });
+            alert("Profil başarıyla güncellendi!");
+        }
+    };
+
+    window.joinNew = () => {
+        const n = document.getElementById('chan-in').value.trim();
+        if(n && !joined.includes(n)) {
+            joined.push(n);
+            localStorage.setItem('joined_chans', JSON.stringify(joined));
+            window.switchChan(n);
+            document.getElementById('chan-in').value = "";
+        }
+    };
+
+    window.switchChan = (name) => {
+        off(ref(db, `channels/${curChan}/messages`));
+        curChan = name;
+        localStorage.setItem('last_chan', name);
+        document.getElementById('cur-title').innerText = "# " + name;
+        
+        onValue(ref(db, `channels/${name}/messages`), (snap) => {
+            const box = document.getElementById('messages');
+            const isAtBottom = box.scrollHeight - box.clientHeight <= box.scrollTop + 50;
+            
+            box.innerHTML = "";
+            snap.forEach(m => {
+                const d = m.val();
+                box.innerHTML += `<div class="msg"><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
+            });
+            
+            if(isAtBottom) box.scrollTop = box.scrollHeight;
+        });
+        
+        renderList();
+        if(window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) window.toggleMenu();
+    };
+
+    window.leaveChan = (e, name) => {
+        e.stopPropagation();
+        if(name === "Global") return;
+        joined = joined.filter(c => c !== name);
+        localStorage.setItem('joined_chans', JSON.stringify(joined));
+        if(curChan === name) window.switchChan("Global"); else renderList();
+    };
+
+    window.sendMsg = () => {
         const i = document.getElementById('msg-input');
-        const val = i.value.trim();
-        if(!val || !canSend) return;
+        const text = i.value.trim();
+        if(!text || !canSend) return;
 
         push(ref(db, `channels/${curChan}/messages`), {
-            uid: me.uid, 
-            nick: me.nick || "Anonim", 
-            color: me.color, 
-            isRGB: me.isRGB || false, 
-            text: val, 
-            time: serverTimestamp()
+            uid: me.uid, nick: me.nick || "Anonim", color: me.color, 
+            isRGB: me.isRGB || false, text: text, time: serverTimestamp()
         }).then(() => {
             i.value = "";
             if(!me.noLimit) {
                 canSend = false;
                 let sec = 5;
-                const info = document.getElementById('cooldown-info');
+                const cd = document.getElementById('cd-display');
                 const t = setInterval(() => {
-                    info.innerText = sec + "s"; sec--;
-                    if(sec < 0) { clearInterval(t); canSend = true; info.innerText = ""; }
+                    cd.innerText = sec + "s"; sec--;
+                    if(sec < 0) { clearInterval(t); canSend = true; cd.innerText = ""; }
                 }, 1000);
             }
-        }).catch(err => alert("Hata: " + err.message));
+        });
     };
 
-    document.getElementById('send-btn').onclick = handleSend;
-    document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') handleSend(); };
-
-    // PROFİL VE ODA FONKSİYONLARI
-    document.getElementById('btn-save-profile').onclick = () => {
-        const n = document.getElementById('nick-in').value.trim();
-        const c = document.getElementById('color-in').value;
-        if(n) { update(ref(db, 'users/' + me.uid), { nick: n, color: c }); alert("Kaydedildi!"); }
+    // YARDIMCI FONKSİYONLAR
+    const renderList = () => {
+        const l = document.getElementById('chan-list');
+        l.innerHTML = `<span class="label" style="padding:0 15px">Kanallarım</span>`;
+        joined.forEach(c => {
+            const div = document.createElement('div');
+            div.className = `chan-item ${c === curChan ? 'active' : ''}`;
+            div.onclick = () => window.switchChan(c);
+            div.innerHTML = `<span># ${c}</span>${c !== 'Global' ? `<span class="leave-btn" onclick="window.leaveChan(event, '${c}')">×</span>` : ''}`;
+            l.appendChild(div);
+        });
     };
 
-    document.getElementById('btn-join-chan').onclick = () => {
-        const n = document.getElementById('chan-in').value.trim();
-        if(n && !joined.includes(n)) {
-            joined.push(n);
-            localStorage.setItem('joined_chans', JSON.stringify(joined));
-            switchChan(n);
-            document.getElementById('chan-in').value = "";
-        }
-    };
-
-    // AUTH VE DİNAMİK YÜKLEME
+    // BAŞLATMA
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -184,7 +233,7 @@
                         document.getElementById('nick-in').value = me.nick || "";
                         document.getElementById('color-in').value = me.color || "#ffffff";
                     } else { set(userRef, me); }
-                    switchChan(curChan);
+                    window.switchChan(curChan);
                 });
                 onDisconnect(userRef).update({ online: false });
                 update(userRef, { online: true });
@@ -192,45 +241,9 @@
         });
     });
 
-    window.switchChan = (name) => {
-        off(ref(db, `channels/${curChan}/messages`));
-        curChan = name;
-        localStorage.setItem('last_chan', name);
-        document.getElementById('cur-title').innerText = "# " + name;
-        
-        onValue(ref(db, `channels/${name}/messages`), (s) => {
-            const box = document.getElementById('messages');
-            box.innerHTML = "";
-            s.forEach(m => {
-                const d = m.val();
-                box.innerHTML += `<div class="message-line"><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
-            });
-            box.scrollTop = box.scrollHeight;
-        });
-        renderList();
-        if(window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) toggleMenu();
-    };
+    // Enter Tuşu Dinleyici
+    document.getElementById('msg-input').onkeydown = (e) => { if(e.key === 'Enter') window.sendMsg(); };
 
-    window.leaveChan = (e, name) => {
-        e.stopPropagation();
-        if(name === "Global") return;
-        joined = joined.filter(c => c !== name);
-        localStorage.setItem('joined_chans', JSON.stringify(joined));
-        if(curChan === name) switchChan("Global"); else renderList();
-    };
-
-    const renderList = () => {
-        const l = document.getElementById('chan-list');
-        l.innerHTML = `<span class="label">ODALARIM</span>`;
-        joined.forEach(c => {
-            const div = document.createElement('div');
-            div.className = `chan-item ${c === curChan ? 'active' : ''}`;
-            div.onclick = () => switchChan(c);
-            div.innerHTML = `<span># ${c}</span>${c !== 'Global' ? `<span class="leave-btn">×</span>` : ''}`;
-            if(c !== 'Global') div.querySelector('.leave-btn').onclick = (e) => leaveChan(e, c);
-            l.appendChild(div);
-        });
-    };
 </script>
 </body>
 </html>
