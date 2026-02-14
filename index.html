@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v38 | Full Sync</title>
+    <title>ChatTheOnlibe v39 | Secure Sync</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -63,7 +63,7 @@
     <div id="sidebar">
         <div class="p-3">
             <span class="label">PROFİL</span>
-            <input type="text" id="nick-in" placeholder="Kullanıcı adı...">
+            <input type="text" id="nick-in" placeholder="Kullanıcı adı..." maxlength="15">
             <input type="color" id="color-in" style="width:100%; height:30px; border:none; background:none; cursor:pointer;">
             <button class="save-btn" onclick="updateProfile()" style="width:100%; margin-top:5px;">KAYDET</button>
             <div id="uid-box" style="font-size: 9px; color: #555; margin-top: 8px; cursor: pointer; text-align: center; border: 1px dashed #333; padding: 2px;" onclick="copyMyID()">ID YÜKLENİYOR...</div>
@@ -116,6 +116,9 @@
     let pid = localStorage.getItem('player_id') || (Math.floor(Math.random() * 900) + 100);
     localStorage.setItem('player_id', pid);
 
+    let isAdmin = false;
+    let isCurrentChanLocked = false;
+
     let me = { 
         uid: "", 
         nick: localStorage.getItem('chat_nick') || "Player" + pid, 
@@ -130,7 +133,6 @@
     let joined = JSON.parse(localStorage.getItem('joined_chans')) || ["Global"];
     let canSend = true;
 
-    // UI & MENU
     window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('active');
@@ -141,16 +143,13 @@
         m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 
-    // AUTH & SYNC (ADMIN/BAN/RGB KONTROLLERİ BURADA)
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 me.uid = user.uid;
                 document.getElementById('uid-box').innerText = "ID: " + user.uid;
-                
                 const userRef = ref(db, 'users/' + user.uid);
                 
-                // PANELDE YAPILAN DEĞİŞİKLİKLERİ ANLIK DİNLE
                 onValue(userRef, (s) => {
                     if (s.exists()) {
                         const d = s.val();
@@ -159,9 +158,7 @@
                         me.isRGB = d.isRGB || false;
                         me.banned = d.banned || false;
                         me.noLimit = d.noLimit || false;
-                    } else { 
-                        set(userRef, me); 
-                    }
+                    } else { set(userRef, me); }
                     document.getElementById('nick-in').value = me.nick.startsWith("Player") ? "" : me.nick;
                     document.getElementById('color-in').value = me.color;
                     window.switchChan(curChan);
@@ -172,9 +169,9 @@
                 loadUsers();
                 listenToDMs();
                 
-                // ADMIN BUTONU (Sadece adminlere görünür)
                 onValue(ref(db, 'system_admins/' + user.uid), (snap) => {
                     if(snap.exists() && snap.val().admin) {
+                        isAdmin = true;
                         if(!document.getElementById('admin-btn')) {
                             const b = document.createElement('button');
                             b.id = "admin-btn";
@@ -185,7 +182,7 @@
                             b.onclick = () => window.location.href = 'yonet.html';
                             document.querySelector('.p-3').appendChild(b);
                         }
-                    }
+                    } else { isAdmin = false; }
                 });
             }
         });
@@ -193,16 +190,30 @@
 
     window.switchChan = (name) => {
         off(ref(db, `channels/${curChan}/messages`));
+        off(ref(db, `channels/${curChan}/settings`));
+        
         curChan = name;
         localStorage.setItem('last_chan', name);
         document.getElementById('cur-title').innerText = name.includes('~') ? "🔒 " + name.replace(me.nick,'').replace('~','') : "# " + name;
+
+        onValue(ref(db, `channels/${name}/settings`), (snap) => {
+            const settings = snap.val();
+            isCurrentChanLocked = settings ? settings.isLocked : false;
+            const input = document.getElementById('msg-input');
+            if(isCurrentChanLocked && !isAdmin) {
+                input.placeholder = "🚫 BU KANAL KİLİTLİDİR";
+                input.disabled = true;
+            } else {
+                input.placeholder = "Mesaj...";
+                input.disabled = false;
+            }
+        });
 
         onValue(ref(db, `channels/${name}/messages`), (s) => {
             const box = document.getElementById('messages');
             box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
-                // Admin mesajı için özel işaretleme
                 let adminMark = d.nick === "KURUCU" ? "<span style='color:red;font-weight:bold;'>[KURUCU]</span> " : "";
                 box.innerHTML += `<div class="msg-line">${adminMark}<b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
             });
@@ -212,12 +223,14 @@
     };
 
     window.sendMsg = () => {
-        const i = document.getElementById('msg-input');
         if(me.banned) { alert("Yasaklandınız!"); return; }
+        if(isCurrentChanLocked && !isAdmin) { alert("Bu oda şu an kilitli!"); return; }
+        
+        const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
 
         push(ref(db, `channels/${curChan}/messages`), {
-            uid: me.uid, // PANELİN OKUYACAĞI ID BURADA
+            uid: me.uid,
             nick: me.nick, 
             color: me.color, 
             isRGB: me.isRGB, 
@@ -242,16 +255,29 @@
         alert("ID Kopyalandı!");
     };
 
+    // GÜNCELLENMİŞ PROFİL SİSTEMİ (SINIRLAMALI)
     window.updateProfile = () => {
         const n = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
+        
+        if(n.length < 3) {
+            alert("Hata: İsim en az 3 karakter olmalıdır!");
+            return;
+        }
+        
+        if(n.length > 15) {
+            alert("Hata: İsim en fazla 15 karakter olmalıdır!");
+            return;
+        }
+
         if(n) {
             update(ref(db, 'users/' + me.uid), { nick: n, color: c });
-            alert("Kaydedildi!");
+            localStorage.setItem('chat_nick', n);
+            localStorage.setItem('chat_color', c);
+            alert("Profil başarıyla güncellendi!");
         }
     };
 
-    // (startDM, joinNew, leaveChan, loadUsers, renderList kısımları aynı kalıyor)
     window.startDM = (target) => {
         if(!target || target === me.nick) return;
         const dm = [me.nick, target].sort().join('~');
