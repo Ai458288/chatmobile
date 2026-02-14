@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v44 | Pro-UI</title>
+    <title>ChatTheOnlibe v45 | Auto-Cleanup</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -11,17 +11,16 @@
         html, body { height: 100dvh; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; }
         #app { display: flex; height: 100dvh; width: 100vw; overflow: hidden; }
 
-        /* SIDEBAR & CLOSE BUTTON */
+        /* SIDEBAR */
         #sidebar { width: 250px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1001; position: relative; }
         #close-sidebar { display: none; position: absolute; top: 10px; right: 15px; font-size: 28px; color: #ff4747; cursor: pointer; font-weight: bold; }
         
         @media (max-width: 768px) {
             #sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 80%; }
             #sidebar.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.9); }
-            #close-sidebar { display: block; } /* Sadece mobilde X butonu görünsün */
+            #close-sidebar { display: block; }
         }
 
-        /* OVERLAY - Boşluğa basınca kapatma */
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(2px); }
         #overlay.active { display: block; }
 
@@ -34,7 +33,6 @@
         .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 8px; }
         .label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; }
         .counter { font-size: 9px; color: #555; }
-        
         input[type="text"] { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; margin-bottom: 5px; }
         .save-btn { background: #2ecc71; color: white; width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
@@ -73,7 +71,6 @@
 <div id="app">
     <div id="sidebar">
         <span id="close-sidebar" onclick="toggleMenu()">×</span>
-        
         <div class="p-3">
             <div class="label-row">
                 <span class="label">PROFİL</span>
@@ -84,9 +81,7 @@
             <button class="save-btn" onclick="updateProfile()">KAYDET</button>
             <div id="uid-box" style="font-size: 9px; color: #555; margin-top: 8px; cursor: pointer; text-align: center;" onclick="copyMyID()">ID YÜKLENİYOR...</div>
         </div>
-        
         <div id="chan-list" style="flex:1; overflow-y:auto; padding-top:10px;"></div>
-
         <div class="p-3" style="border-top: 1px solid #333; border-bottom: none;">
             <span class="label">YENİ ODA</span>
             <input type="text" id="chan-in" placeholder="Oda adı...">
@@ -115,7 +110,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off, onDisconnect, get, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -136,10 +131,7 @@
     localStorage.setItem('player_id', pid);
 
     let me = { 
-        uid: "", 
-        nick: "Player" + pid, 
-        color: "#ffffff", 
-        isRGB: false, banned: false, noLimit: false, online: true 
+        uid: "", nick: "Player" + pid, color: "#ffffff", isRGB: false, banned: false, noLimit: false, online: true 
     };
 
     let curChan = localStorage.getItem('last_chan') || "Global";
@@ -148,12 +140,40 @@
     let isCurrentChanLocked = false;
     let canSend = true;
 
-    // --- MENÜ KONTROLÜ ---
+    // --- TEMİZLİK VE PRESENCE SİSTEMİ ---
+    const managePresence = async (newChan, oldChan) => {
+        if(oldChan) {
+            remove(ref(db, `channels/${oldChan}/present/${me.uid}`));
+        }
+        
+        const presentRef = ref(db, `channels/${newChan}/present`);
+        const snapshot = await get(presentRef);
+        
+        // İstisnalar: Duyuru ve Uyarılar silinmez
+        const isException = (newChan === "Duyuru" || newChan === "Uyarılar");
+        
+        // Eğer kanal boşsa (veya sadece biz varsak ama veritabanında henüz yoksak)
+        if (!isException && (!snapshot.exists() || Object.keys(snapshot.val()).length === 0)) {
+            // Mesajları sil
+            await remove(ref(db, `channels/${newChan}/messages`));
+            // Sistem mesajı gönder
+            push(ref(db, `channels/${newChan}/messages`), {
+                nick: "SYSTEM", 
+                text: "Mesajlar kimse olmadığından temizlendi... iyi sohbetler.", 
+                color: "#ff0000", 
+                isRGB: false, 
+                time: serverTimestamp()
+            });
+        }
+
+        // Kendimizi ekleyelim
+        set(ref(db, `channels/${newChan}/present/${me.uid}`), true);
+        onDisconnect(ref(db, `channels/${newChan}/present/${me.uid}`)).remove();
+    };
+
     window.toggleMenu = () => {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('active');
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('active');
     };
 
     window.updateCounters = () => {
@@ -161,7 +181,6 @@
         const nInput = document.getElementById('nick-in');
         const mCount = document.getElementById('msg-counter');
         const nCount = document.getElementById('nick-counter');
-
         if (me.noLimit) {
             mCount.innerText = "VIP: ∞"; nCount.innerText = "VIP: ∞";
             mInput.removeAttribute('maxlength'); nInput.removeAttribute('maxlength');
@@ -178,7 +197,6 @@
                 me.uid = user.uid;
                 document.getElementById('uid-box').innerText = "ID: " + user.uid;
                 const userRef = ref(db, 'users/' + user.uid);
-                
                 onValue(userRef, (s) => {
                     if (s.exists()) {
                         const d = s.val();
@@ -193,56 +211,44 @@
                     window.updateCounters();
                     window.switchChan(curChan);
                 });
-
                 update(userRef, { online: true });
                 onDisconnect(userRef).update({ online: false });
                 loadUsers();
                 listenToDMs();
-                
                 onValue(ref(db, 'system_admins/' + user.uid), (snap) => {
-                    if(snap.exists() && snap.val().admin) {
-                        isAdmin = true;
-                        if(!document.getElementById('admin-btn')) {
-                            const b = document.createElement('button');
-                            b.id = "admin-btn"; b.innerText = "🛠 YÖNETİM PANELİ";
-                            b.className = "save-btn"; b.style.background = "#e67e22"; b.style.marginTop = "5px";
-                            b.onclick = () => window.location.href = 'yonet.html';
-                            document.querySelector('.p-3').appendChild(b);
-                        }
-                    }
+                    if(snap.exists() && snap.val().admin) isAdmin = true;
                 });
             }
         });
     });
 
     window.switchChan = (name) => {
+        const old = curChan;
         off(ref(db, `channels/${curChan}/messages`));
         off(ref(db, `channels/${curChan}/settings`));
+        
         curChan = name;
         localStorage.setItem('last_chan', name);
+        managePresence(name, old); // Temizlik kontrolünü yap
         
-        let titleIcon = "# ";
-        if(name === "Duyuru") titleIcon = "📣 ";
-        if(name === "Uyarılar") titleIcon = "⚠️ ";
-        if(name.includes('~')) titleIcon = "🔒 ";
+        let titleIcon = name === "Duyuru" ? "📣 " : (name === "Uyarılar" ? "⚠️ " : (name.includes('~') ? "🔒 " : "# "));
         document.getElementById('cur-title').innerText = titleIcon + name.replace(me.nick,'').replace('~','');
 
         onValue(ref(db, `channels/${name}/settings`), (snap) => {
             const settings = snap.val();
-            let defaultLock = (name === "Duyuru" || name === "Uyarılar");
-            isCurrentChanLocked = settings ? settings.isLocked : defaultLock;
+            isCurrentChanLocked = settings ? settings.isLocked : (name === "Duyuru" || name === "Uyarılar");
             const input = document.getElementById('msg-input');
             input.placeholder = isCurrentChanLocked && !isAdmin ? "🚫 YAZMA YETKİNİZ YOK" : "Mesaj...";
             input.disabled = isCurrentChanLocked && !isAdmin;
         });
 
         onValue(ref(db, `channels/${name}/messages`), (s) => {
-            const box = document.getElementById('messages');
-            box.innerHTML = "";
+            const box = document.getElementById('messages'); box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
+                let isSys = d.nick === "SYSTEM";
                 let adminMark = d.nick === "KURUCU" ? "<span style='color:red;font-weight:bold;'>[KURUCU]</span> " : "";
-                box.innerHTML += `<div class="msg-line">${adminMark}<b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
+                box.innerHTML += `<div class="msg-line">${adminMark}<b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span style="${isSys?'color:#ff4747;font-weight:bold;':''}">${d.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         });
@@ -250,25 +256,16 @@
     };
 
     window.sendMsg = () => {
-        if(me.banned) return alert("Yasaklandınız!");
-        if(isCurrentChanLocked && !isAdmin) return;
+        if(me.banned || (isCurrentChanLocked && !isAdmin)) return;
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
-        if(!me.noLimit && i.value.length > 100) return alert("Mesaj çok uzun!");
-
         push(ref(db, `channels/${curChan}/messages`), {
             uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp()
         });
-        i.value = "";
-        window.updateCounters();
+        i.value = ""; window.updateCounters();
         if(!me.noLimit) {
-            canSend = false;
-            let s = 5;
-            const btn = document.getElementById('send-btn');
-            const t = setInterval(() => {
-                btn.innerText = s + "s"; s--;
-                if(s < 0) { clearInterval(t); canSend = true; btn.innerText = "GÖNDER"; }
-            }, 1000);
+            canSend = false; let s = 5; const btn = document.getElementById('send-btn');
+            const t = setInterval(() => { btn.innerText = s + "s"; s--; if(s < 0) { clearInterval(t); canSend = true; btn.innerText = "GÖNDER"; } }, 1000);
         }
     };
 
@@ -277,7 +274,6 @@
         const c = document.getElementById('color-in').value;
         let finalNick = nInput === "" ? "Player" + pid : nInput;
         if(nInput !== "" && nInput.length < 3) return alert("İsim en az 3 karakter olmalı!");
-        if(!me.noLimit && nInput.length > 25) return alert("İsim en fazla 25 karakter olmalı!");
         update(ref(db, 'users/' + me.uid), { nick: finalNick, color: c });
         alert("Profil Güncellendi!");
     };
@@ -287,16 +283,11 @@
     window.renderList = () => {
         const l = document.getElementById('chan-list');
         l.innerHTML = `<span class="label" style="padding:0 15px;">SABİT KANALLAR</span>`;
-        const fixed = ["Global", "Duyuru", "Uyarılar"];
-        fixed.forEach(f => {
-            const isSub = f !== "Global";
-            l.innerHTML += `
-                <div class="chan-item fixed-chan ${isSub ? 'sub-chan' : ''} ${curChan === f ? 'active' : ''}" onclick="window.switchChan('${f}')">
-                    <span>${f === "Global" ? "🌍" : (f === "Duyuru" ? "📣" : "⚠️")} ${f}</span>
-                </div>`;
+        ["Global", "Duyuru", "Uyarılar"].forEach(f => {
+            l.innerHTML += `<div class="chan-item fixed-chan ${f !== "Global" ? 'sub-chan' : ''} ${curChan === f ? 'active' : ''}" onclick="window.switchChan('${f}')"><span>${f === "Global" ? "🌍" : (f === "Duyuru" ? "📣" : "⚠️")} ${f}</span></div>`;
         });
         l.innerHTML += `<br><span class="label" style="padding:0 15px;">ÖZEL ODALAR & DM</span>`;
-        joined.filter(c => !fixed.includes(c)).forEach(c => {
+        joined.filter(c => !["Global", "Duyuru", "Uyarılar"].includes(c)).forEach(c => {
             let dName = c.includes('~') ? "💬 " + c.replace(me.nick,'').replace('~','') : "# " + c;
             l.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}" onclick="window.switchChan('${c}')"><span>${dName}</span><span class="leave-btn" onclick="window.leaveChan(event, '${c}')">×</span></div>`;
         });
@@ -304,33 +295,20 @@
 
     window.joinNew = () => {
         const n = document.getElementById('chan-in').value.trim();
-        if(n && !joined.includes(n)) {
-            joined.push(n);
-            localStorage.setItem('joined_chans', JSON.stringify(joined));
-            window.switchChan(n);
-            document.getElementById('chan-in').value="";
-        }
+        if(n && !joined.includes(n)) { joined.push(n); localStorage.setItem('joined_chans', JSON.stringify(joined)); window.switchChan(n); document.getElementById('chan-in').value=""; }
     };
 
-    window.leaveChan = (e, name) => {
-        e.stopPropagation();
-        joined = joined.filter(c => c !== name);
-        localStorage.setItem('joined_chans', JSON.stringify(joined));
-        window.switchChan("Global");
-    };
+    window.leaveChan = (e, name) => { e.stopPropagation(); joined = joined.filter(c => c !== name); localStorage.setItem('joined_chans', JSON.stringify(joined)); window.switchChan("Global"); };
 
     const loadUsers = () => {
         onValue(ref(db, 'users'), (s) => {
-            const list = document.getElementById('online-list');
-            list.innerHTML = "";
+            const list = document.getElementById('online-list'); list.innerHTML = "";
             s.forEach(u => {
                 const user = u.val();
                 if(user.online && user.uid !== me.uid) {
-                    const div = document.createElement('div');
-                    div.className = "user-item";
+                    const div = document.createElement('div'); div.className = "user-item";
                     div.innerHTML = `<span class="status-dot"></span><span class="${user.isRGB?'rgb-nick':''}" style="${user.isRGB?'':`color:${user.color}`}">${user.nick}</span>`;
-                    div.onclick = () => window.startDM(user.nick);
-                    list.appendChild(div);
+                    div.onclick = () => window.startDM(user.nick); list.appendChild(div);
                 }
             });
         });
@@ -339,9 +317,7 @@
     window.startDM = (target) => {
         const dm = [me.nick, target].sort().join('~');
         if(!joined.includes(dm)) { joined.push(dm); localStorage.setItem('joined_chans', JSON.stringify(joined)); }
-        window.switchChan(dm);
-        window.toggleUserList = () => { const m = document.getElementById('user-modal'); m.style.display = 'none'; };
-        window.toggleUserList();
+        window.switchChan(dm); window.toggleUserList();
     };
 
     const listenToDMs = () => {
@@ -349,19 +325,13 @@
             snap.forEach((chan) => {
                 const name = chan.key;
                 if(name.includes('~') && name.includes(me.nick) && !joined.includes(name)) {
-                    joined.push(name);
-                    localStorage.setItem('joined_chans', JSON.stringify(joined));
-                    renderList();
+                    joined.push(name); localStorage.setItem('joined_chans', JSON.stringify(joined)); renderList();
                 }
             });
         });
     };
 
-    window.toggleUserList = () => {
-        const m = document.getElementById('user-modal');
-        m.style.display = m.style.display === 'block' ? 'none' : 'block';
-    };
-
+    window.toggleUserList = () => { const m = document.getElementById('user-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
     document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') window.sendMsg(); };
 </script>
 </body>
