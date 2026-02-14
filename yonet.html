@@ -2,51 +2,64 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Master Admin v14</title>
+    <title>Master Admin v38 | Pro Management</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
-        .card { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; background: #050505; }
-        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; margin: 5px 0; cursor:pointer; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; }
+        .card { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; background: #050505; box-shadow: 0 0 10px rgba(0,255,0,0.2); }
+        h2, h4 { margin-top: 0; color: #0f0; text-transform: uppercase; }
+        input { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; margin: 5px 0; outline: none; }
+        button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px 15px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         button:hover { background: #0f0; color: #000; }
-        .msg-item { border-bottom: 1px solid #1a1a1a; padding: 10px; display: flex; justify-content: space-between; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        small { color: #888; }
+        .msg-item { border-bottom: 1px solid #1a1a1a; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .btn-danger { color: #ff4747; border-color: #ff4747; }
+        .btn-danger:hover { background: #ff4747; color: #000; }
+        small { color: #888; display: block; margin-top: 4px; }
+        #master-list { max-height: 500px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
 <div id="auth-screen" style="text-align:center; padding-top:100px;">
-    <h3>YÖNETİCİ GİRİŞİ</h3>
-    <input type="password" id="pass" placeholder="Şifre...">
-    <button onclick="login()">GİRİŞ</button>
+    <div class="card" style="display:inline-block; width:300px;">
+        <h3>GÜVENLİK DUVARI</h3>
+        <input type="password" id="pass" placeholder="Yönetici Şifresi..." style="width:80%;"> <br>
+        <button onclick="login()" style="width:87%; margin-top:10px;">PANELİ AÇ</button>
+    </div>
 </div>
 
 <div id="admin-panel" style="display:none;">
-    <h2>[ SİSTEM YÖNETİMİ V14 ]</h2>
+    <h2>[ SİSTEM YÖNETİMİ V38 ]</h2>
     
     <div class="card">
-        <h4>KONTROL PANELİ</h4>
-        <input type="text" id="target-id" placeholder="Hedef Kullanıcı ID..." style="width:350px;">
+        <h4>HIZLI KOMUTLAR</h4>
+        <input type="text" id="target-id" placeholder="Kullanıcı UID (Örn: J8kL2...)" style="width:100%; max-width:400px;">
         <div class="btn-group">
             <button onclick="doAction('ban')">BANLA</button>
             <button onclick="doAction('unban')">BAN KALDIR</button>
             <button onclick="doAction('rgb_on')">RGB VER</button>
             <button onclick="doAction('rgb_off')">RGB AL</button>
-            <button onclick="doAction('limit_off')">SÜRE KALDIR (VIP)</button>
+            <button onclick="doAction('limit_off')">SÜRE SİL (VIP)</button>
             <button onclick="doAction('limit_on')">SÜRE EKLE (NORMAL)</button>
-            <button onclick="doAction('add_admin')" style="color:#f0f;">ADMİN YAP</button>
+            <button onclick="doAction('add_admin')" style="color:#f0f; border-color:#f0f;">ADMİN VER</button>
+            <button onclick="doAction('remove_admin')" style="color:#f0f; border-color:#f0f;">ADMİN AL</button>
         </div>
     </div>
 
+    <div class="card" style="border-color: #ff4747;">
+        <h4>KRİTİK İŞLEMLER</h4>
+        <button class="btn-danger" onclick="wipeAllData()">TÜM KANALLARI VE MESAJLARI SIFIRLA (WIPE)</button>
+    </div>
+
     <div class="card">
-        <h4>MESAJLAR & ID TAKİBİ</h4>
-        <div id="master-list">Yükleniyor...</div>
+        <h4>CANLI SOHBET & ID TAKİBİ</h4>
+        <div id="master-list">Mesajlar taranıyor...</div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -63,18 +76,20 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
+    // Otomatik Kimlik Kontrolü
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
         if (user) {
+            // Eğer veritabanında bu ID adminse şifre sorma
             onValue(ref(db, 'system_admins/' + user.uid), (s) => {
-                if (s.exists()) openPanel();
+                if (s.exists() && s.val().admin === true) openPanel();
             });
         }
     });
 
     window.login = () => {
         if(document.getElementById('pass').value === 'chatsite23') openPanel();
-        else alert("Hatalı!");
+        else alert("Erişim Reddedildi!");
     };
 
     function openPanel() {
@@ -83,40 +98,62 @@
         startMonitor();
     }
 
+    // KOMUT SİSTEMİ
     window.doAction = (act) => {
         const id = document.getElementById('target-id').value.trim();
-        if(!id) return alert("ID Girin!");
+        if(!id) return alert("Hata: Hedef ID belirtilmedi!");
         
-        if(act==='ban') set(ref(db, 'bans/'+id), {banned:true});
-        if(act==='unban') remove(ref(db, 'bans/'+id));
-        if(act==='rgb_on') update(ref(db, 'users/'+id), {isRGB:true});
-        if(act==='rgb_off') update(ref(db, 'users/'+id), {isRGB:false});
-        if(act==='limit_off') update(ref(db, 'users/'+id), {noLimit:true});
-        if(act==='limit_on') update(ref(db, 'users/'+id), {noLimit:false});
-        if(act==='add_admin') set(ref(db, 'system_admins/'+id), {admin:true});
-        
-        alert("İşlem Başarılı!");
+        switch(act) {
+            case 'ban': update(ref(db, 'users/'+id), {banned: true}); break;
+            case 'unban': update(ref(db, 'users/'+id), {banned: false}); break;
+            case 'rgb_on': update(ref(db, 'users/'+id), {isRGB: true}); break;
+            case 'rgb_off': update(ref(db, 'users/'+id), {isRGB: false}); break;
+            case 'limit_off': update(ref(db, 'users/'+id), {noLimit: true}); break;
+            case 'limit_on': update(ref(db, 'users/'+id), {noLimit: false}); break;
+            case 'add_admin': set(ref(db, 'system_admins/'+id), {admin: true}); break;
+            case 'remove_admin': remove(ref(db, 'system_admins/'+id)); break;
+        }
+        alert("Sistem Güncellendi!");
     };
 
+    // TÜM VERİYİ SİLME
+    window.wipeAllData = () => {
+        if(confirm("DİKKAT! Tüm mesajlar ve kanallar silinecek. Emin misin?")) {
+            remove(ref(db, 'channels'));
+            alert("Tüm kanallar sıfırlandı.");
+        }
+    };
+
+    // MESAJ TAKİBİ VE SİLME
     function startMonitor() {
         onValue(ref(db, 'channels'), (snap) => {
             const list = document.getElementById('master-list');
             list.innerHTML = "";
             const data = snap.val();
-            if(!data) return;
+            if(!data) {
+                list.innerHTML = "Sohbet temiz.";
+                return;
+            }
+
             Object.keys(data).forEach(cName => {
                 const msgs = data[cName].messages;
                 if(msgs) {
                     Object.keys(msgs).forEach(mKey => {
                         const m = msgs[mKey];
-                        list.innerHTML += `
-                            <div class="msg-item">
-                                <div>
-                                    <b>${m.nick}:</b> ${m.text} <br>
-                                    <small>ID: ${m.uid} | Oda: ${cName}</small>
-                                </div>
-                                <button onclick="remove(ref(db, 'channels/${cName}/messages/${mKey}'))">SİL</button>
-                            </div>`;
+                        const item = document.createElement('div');
+                        item.className = "msg-item";
+                        item.innerHTML = `
+                            <div>
+                                <b style="color:#fff">${m.nick}:</b> ${m.text}
+                                <small>UID: ${m.uid || 'Bilinmiyor'} | Oda: ${cName}</small>
+                            </div>
+                        `;
+                        const delBtn = document.createElement('button');
+                        delBtn.innerText = "SİL";
+                        delBtn.onclick = () => remove(ref(db, `channels/${cName}/messages/${mKey}`));
+                        
+                        item.appendChild(delBtn);
+                        list.prepend(item); // En yeni mesajı üste koy
                     });
                 }
             });
