@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v34 | Persistent Edition</title>
+    <title>ChatTheOnlibe v38 | Full Sync</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -66,6 +66,7 @@
             <input type="text" id="nick-in" placeholder="Kullanıcı adı...">
             <input type="color" id="color-in" style="width:100%; height:30px; border:none; background:none; cursor:pointer;">
             <button class="save-btn" onclick="updateProfile()" style="width:100%; margin-top:5px;">KAYDET</button>
+            <div id="uid-box" style="font-size: 9px; color: #555; margin-top: 8px; cursor: pointer; text-align: center; border: 1px dashed #333; padding: 2px;" onclick="copyMyID()">ID YÜKLENİYOR...</div>
         </div>
         <div class="p-3">
             <span class="label">ODALAR</span>
@@ -112,23 +113,16 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // KALICI PLAYER & NICK SISTEMI
-    let localNick = localStorage.getItem('chat_nick');
-    let pid = localStorage.getItem('player_id');
-    
-    if(!pid) {
-        pid = Math.floor(Math.random() * 900) + 100;
-        localStorage.setItem('player_id', pid);
-    }
-    
-    const defaultNick = "Player" + pid;
-    let currentNick = localNick || defaultNick;
+    let pid = localStorage.getItem('player_id') || (Math.floor(Math.random() * 900) + 100);
+    localStorage.setItem('player_id', pid);
 
     let me = { 
         uid: "", 
-        nick: currentNick, 
+        nick: localStorage.getItem('chat_nick') || "Player" + pid, 
         color: localStorage.getItem('chat_color') || "#ffffff", 
-        isRGB: localStorage.getItem('chat_rgb') === 'true', 
+        isRGB: false,
+        banned: false,
+        noLimit: false,
         online: true 
     };
 
@@ -136,7 +130,7 @@
     let joined = JSON.parse(localStorage.getItem('joined_chans')) || ["Global"];
     let canSend = true;
 
-    // UI
+    // UI & MENU
     window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('active');
@@ -147,23 +141,24 @@
         m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 
-    // AUTH & SYNC
+    // AUTH & SYNC (ADMIN/BAN/RGB KONTROLLERİ BURADA)
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 me.uid = user.uid;
+                document.getElementById('uid-box').innerText = "ID: " + user.uid;
+                
                 const userRef = ref(db, 'users/' + user.uid);
                 
+                // PANELDE YAPILAN DEĞİŞİKLİKLERİ ANLIK DİNLE
                 onValue(userRef, (s) => {
                     if (s.exists()) {
                         const d = s.val();
-                        // Eğer sunucuda nick varsa ve yerelde yoksa senkronize et
-                        if(d.nick) {
-                            me.nick = d.nick;
-                            me.color = d.color;
-                            me.isRGB = d.isRGB;
-                            localStorage.setItem('chat_nick', d.nick);
-                        }
+                        me.nick = d.nick || me.nick;
+                        me.color = d.color || me.color;
+                        me.isRGB = d.isRGB || false;
+                        me.banned = d.banned || false;
+                        me.noLimit = d.noLimit || false;
                     } else { 
                         set(userRef, me); 
                     }
@@ -172,28 +167,29 @@
                     window.switchChan(curChan);
                 });
 
-                update(userRef, { online: true, nick: me.nick });
+                update(userRef, { online: true });
                 onDisconnect(userRef).update({ online: false });
                 loadUsers();
                 listenToDMs();
+                
+                // ADMIN BUTONU (Sadece adminlere görünür)
+                onValue(ref(db, 'system_admins/' + user.uid), (snap) => {
+                    if(snap.exists() && snap.val().admin) {
+                        if(!document.getElementById('admin-btn')) {
+                            const b = document.createElement('button');
+                            b.id = "admin-btn";
+                            b.innerText = "🛠 YÖNETİM PANELİ";
+                            b.className = "save-btn";
+                            b.style.background = "#e67e22";
+                            b.style.marginTop = "5px";
+                            b.onclick = () => window.location.href = 'yonet.html';
+                            document.querySelector('.p-3').appendChild(b);
+                        }
+                    }
+                });
             }
         });
     });
-
-    const listenToDMs = () => {
-        onValue(ref(db, 'channels'), (snap) => {
-            snap.forEach((chan) => {
-                const name = chan.key;
-                if(name.includes('~') && name.includes(me.nick)) {
-                    if(!joined.includes(name)) {
-                        joined.push(name);
-                        localStorage.setItem('joined_chans', JSON.stringify(joined));
-                        renderList();
-                    }
-                }
-            });
-        });
-    };
 
     window.switchChan = (name) => {
         off(ref(db, `channels/${curChan}/messages`));
@@ -206,7 +202,9 @@
             box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
-                box.innerHTML += `<div class="msg-line"><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick || 'Anonim'}:</b> <span>${d.text}</span></div>`;
+                // Admin mesajı için özel işaretleme
+                let adminMark = d.nick === "KURUCU" ? "<span style='color:red;font-weight:bold;'>[KURUCU]</span> " : "";
+                box.innerHTML += `<div class="msg-line">${adminMark}<b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         });
@@ -215,10 +213,18 @@
 
     window.sendMsg = () => {
         const i = document.getElementById('msg-input');
+        if(me.banned) { alert("Yasaklandınız!"); return; }
         if(!i.value.trim() || !canSend) return;
+
         push(ref(db, `channels/${curChan}/messages`), {
-            nick: me.nick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp()
+            uid: me.uid, // PANELİN OKUYACAĞI ID BURADA
+            nick: me.nick, 
+            color: me.color, 
+            isRGB: me.isRGB, 
+            text: i.value, 
+            time: serverTimestamp()
         });
+        
         i.value = "";
         if(!me.noLimit) {
             canSend = false;
@@ -231,20 +237,21 @@
         }
     };
 
+    window.copyMyID = () => {
+        navigator.clipboard.writeText(me.uid);
+        alert("ID Kopyalandı!");
+    };
+
     window.updateProfile = () => {
         const n = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
         if(n) {
-            me.nick = n;
-            me.color = c;
-            localStorage.setItem('chat_nick', n);
-            localStorage.setItem('chat_color', c);
             update(ref(db, 'users/' + me.uid), { nick: n, color: c });
-            alert("Profil Kilitlendi: " + n);
-            window.switchChan(curChan);
+            alert("Kaydedildi!");
         }
     };
 
+    // (startDM, joinNew, leaveChan, loadUsers, renderList kısımları aynı kalıyor)
     window.startDM = (target) => {
         if(!target || target === me.nick) return;
         const dm = [me.nick, target].sort().join('~');
@@ -297,6 +304,21 @@
         joined.forEach(c => {
             let dName = c.includes('~') ? "💬 " + c.replace(me.nick,'').replace('~','') : "# " + c;
             l.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}" onclick="window.switchChan('${c}')"><span>${dName}</span>${c !== 'Global' ? `<span class="leave-btn" onclick="window.leaveChan(event, '${c}')">×</span>` : ''}</div>`;
+        });
+    };
+
+    const listenToDMs = () => {
+        onValue(ref(db, 'channels'), (snap) => {
+            snap.forEach((chan) => {
+                const name = chan.key;
+                if(name.includes('~') && name.includes(me.nick)) {
+                    if(!joined.includes(name)) {
+                        joined.push(name);
+                        localStorage.setItem('joined_chans', JSON.stringify(joined));
+                        renderList();
+                    }
+                }
+            });
         });
     };
 
