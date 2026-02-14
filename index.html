@@ -3,52 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v33</title>
+    <title>ChatTheOnlibe v33 | Final Fix</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
-        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
-        input { -webkit-user-select: text; user-select: text; }
+        
+        /* GÜVENLİK VE SEÇİM ENGELİ */
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        input, #msg-input { -webkit-user-select: text; user-select: text; }
+
         html, body { height: 100dvh; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; }
         #app { display: flex; height: 100dvh; width: 100vw; overflow: hidden; position: relative; }
 
-        /* SIDEBAR */
-        #sidebar { width: 250px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1001; }
+        /* SIDEBAR (YAN MENÜ) */
+        #sidebar { 
+            width: 250px; background: var(--panel); border-right: 1px solid #333; 
+            display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1001; 
+        }
+
         @media (max-width: 768px) {
             #sidebar { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); width: 80%; }
-            #sidebar.open { transform: translateX(0); box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
+            #sidebar.open { transform: translateX(0); box-shadow: 10px 0 20px rgba(0,0,0,0.8); }
         }
 
         #menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
         @media (max-width: 768px) { #menu-btn { display: block; } }
+
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; }
         #overlay.active { display: block; }
 
-        /* MODAL & LİSTELER */
+        /* PANEL ÖĞELERİ */
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
         .label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; }
         input[type="text"] { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; margin-bottom: 5px; }
-        .save-btn { background: #2ecc71; color: white; width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .save-btn { background: #2ecc71; color: white; width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .save-btn:active { transform: scale(0.95); }
 
-        #main { flex: 1; display: flex; flex-direction: column; height: 100dvh; background: #121212; }
+        /* SOHBET ALANI */
+        #main { flex: 1; display: flex; flex-direction: column; height: 100dvh; background: #121212; min-width: 0; }
         #top-bar { height: 50px; background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #333; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .msg-line { word-wrap: break-word; font-size: 14px; line-height: 1.4; }
+        .msg-line { word-wrap: break-word; font-size: 14px; line-height: 1.5; }
 
-        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 5px; margin: 2px 5px; color: #999; }
+        /* KANAL LİSTESİ */
+        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; font-size: 13px; cursor: pointer; border-radius: 5px; margin: 2px 8px; color: #aaa; transition: 0.2s; }
+        .chan-item:hover { background: rgba(255,255,255,0.05); }
         .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
-        .leave-btn { color: #ff4747; font-weight: bold; padding: 2px 8px; }
+        .leave-btn { color: #ff4747; font-weight: bold; padding: 0 8px; font-size: 16px; }
 
-        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 220px; max-height: 350px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 2000; padding: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); overflow-y: auto; }
-        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-        .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; }
+        /* KULLANICI LİSTESİ MODAL */
+        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 220px; max-height: 350px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 2000; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto; }
+        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; box-shadow: 0 0 5px #2ecc71; }
 
+        /* MESAJ GİRİŞİ */
         #input-zone { padding: 10px; background: var(--panel); border-top: 1px solid #333; }
         .input-box { background: #2a2a2a; border-radius: 20px; padding: 0 15px; display: flex; align-items: center; }
-        #msg-input { flex: 1; background: none; border: none; color: white; padding: 10px 0; outline: none; }
-        #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; }
+        #msg-input { flex: 1; background: none; border: none; color: white; padding: 12px 0; outline: none; font-size: 14px; }
+        #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px; }
 
-        .rgb-nick { background: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: move 3s linear infinite; font-weight: bold; }
-        @keyframes move { to { background-position: 200% center; } }
+        /* RGB EFEKTİ */
+        .rgb-nick { background: linear-gradient(to right, red, orange, yellow, green, cyan, blue, violet, red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: move-bg 3s linear infinite; font-weight: bold; }
+        @keyframes move-bg { to { background-position: 200% center; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -58,14 +73,14 @@
 <div id="app">
     <div id="sidebar">
         <div class="p-3">
-            <span class="label">PROFİL</span>
-            <input type="text" id="nick-in" placeholder="Nick...">
-            <input type="color" id="color-in">
-            <button class="save-btn" onclick="updateProfile()" style="margin-top:5px; width:100%;">KAYDET</button>
+            <span class="label">PROFİL AYARLARI</span>
+            <input type="text" id="nick-in" placeholder="Nick belirle...">
+            <input type="color" id="color-in" style="width:100%; height:30px; border:none; background:none; cursor:pointer; margin-bottom:5px;">
+            <button class="save-btn" onclick="updateProfile()" style="width:100%;">DEĞİŞİKLİKLERİ KAYDET</button>
         </div>
         <div class="p-3">
-            <span class="label">ODA KATIL</span>
-            <input type="text" id="chan-in" placeholder="Oda adı...">
+            <span class="label">YENİ ODA KATIL</span>
+            <input type="text" id="chan-in" placeholder="Oda ismi...">
             <button onclick="joinNew()" class="save-btn" style="background:var(--accent); width:100%;">KATIL</button>
         </div>
         <div id="chan-list" style="flex:1; overflow-y:auto;"></div>
@@ -74,20 +89,23 @@
     <div id="main">
         <div id="top-bar">
             <button id="menu-btn" onclick="toggleMenu()">☰</button>
-            <span id="cur-title" style="font-weight:bold; color:var(--accent);"># Global</span>
+            <span id="cur-title" style="font-weight:bold; color:var(--accent); font-size:14px;"># Global</span>
             <button onclick="toggleUserList()" style="background:none; border:none; color:white; font-size:22px; cursor:pointer;">👤</button>
         </div>
         <div id="messages"></div>
         <div id="input-zone">
             <div class="input-box">
-                <input type="text" id="msg-input" placeholder="Mesaj..." maxlength="100">
+                <input type="text" id="msg-input" placeholder="Bir mesaj yaz..." maxlength="100">
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
         </div>
     </div>
 </div>
 
-<div id="user-modal"><div class="label">Online Kullanıcılar</div><div id="online-list"></div></div>
+<div id="user-modal">
+    <div class="label" style="border-bottom:1px solid #444; padding-bottom:5px; margin-bottom:5px;">Aktif Kullanıcılar</div>
+    <div id="online-list"></div>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -108,19 +126,23 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
+    // Otomatik Player İsmi Oluşturma
     let pid = localStorage.getItem('player_id') || Math.floor(Math.random() * 900) + 100;
     localStorage.setItem('player_id', pid);
     const defaultNick = "Player" + pid;
 
-    let me = { uid: "", nick: defaultNick, color: "#ffffff", isRGB: false, noLimit: false, online: true };
+    let me = { uid: "", nick: defaultNick, color: "#ffffff", isRGB: false, online: true };
     let curChan = localStorage.getItem('last_chan') || "Global";
     let joined = JSON.parse(localStorage.getItem('joined_chans')) || ["Global"];
     let canSend = true;
 
+    // Arayüz Fonksiyonları
     window.toggleMenu = () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('overlay').classList.toggle('active');
-        document.getElementById('menu-btn').innerText = document.getElementById('sidebar').classList.contains('open') ? "✕" : "☰";
+        const s = document.getElementById('sidebar');
+        const o = document.getElementById('overlay');
+        s.classList.toggle('open');
+        o.classList.toggle('active');
+        document.getElementById('menu-btn').innerText = s.classList.contains('open') ? "✕" : "☰";
     };
     document.getElementById('overlay').onclick = window.toggleMenu;
 
@@ -129,6 +151,7 @@
         m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 
+    // Firebase Giriş ve Veri Takibi
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -141,21 +164,23 @@
                         me.nick = d.nick || defaultNick;
                         me.color = d.color || "#ffffff";
                         me.isRGB = d.isRGB || false;
-                    } else { set(userRef, me); }
+                    } else { 
+                        set(userRef, me); 
+                    }
                     document.getElementById('nick-in').value = me.nick.startsWith("Player") ? "" : me.nick;
                     document.getElementById('color-in').value = me.color;
                     window.switchChan(curChan);
                 });
 
-                update(userRef, { online: true, nick: me.nick }); // Nick'i zorunlu kaydet
+                update(userRef, { online: true, nick: me.nick });
                 onDisconnect(userRef).update({ online: false });
                 loadUsers();
-                listenToDMs(); // DM'leri dinlemeyi başlat
+                listenToDMs();
             }
         });
     });
 
-    // DM TAKİP SİSTEMİ: Birisi sana DM attığında odayı listeye ekler
+    // DM Dinleyici: Karşı taraf yazdığında oda listeye düşer
     const listenToDMs = () => {
         onValue(ref(db, 'channels'), (snap) => {
             snap.forEach((chan) => {
@@ -196,11 +221,10 @@
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
         
-        // NICK GÜVENLİĞİ: Undefined olamaz
-        const finalNick = me.nick || defaultNick;
+        const senderNick = me.nick || defaultNick;
 
         push(ref(db, `channels/${curChan}/messages`), {
-            nick: finalNick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp()
+            nick: senderNick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp()
         });
         i.value = "";
         
@@ -218,11 +242,11 @@
     window.updateProfile = () => {
         const n = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
-        if(n) { update(ref(db, 'users/' + me.uid), { nick: n, color: c }); alert("Tamamdır!"); }
+        if(n) { update(ref(db, 'users/' + me.uid), { nick: n, color: c }); alert("Profil güncellendi."); }
     };
 
     window.startDM = (targetNick) => {
-        if(targetNick === me.nick) return;
+        if(!targetNick || targetNick === me.nick) return;
         const dmName = [me.nick, targetNick].sort().join('~');
         if(!joined.includes(dmName)) {
             joined.push(dmName);
@@ -269,7 +293,7 @@
 
     const renderList = () => {
         const l = document.getElementById('chan-list');
-        l.innerHTML = `<span class="label" style="padding:10px;">Kanallar</span>`;
+        l.innerHTML = `<span class="label" style="padding:10px 15px;">Kanallarım</span>`;
         joined.forEach(c => {
             let dName = c.includes('~') ? "💬 " + c.replace(me.nick,'').replace('~','') : "# " + c;
             l.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}" onclick="window.switchChan('${c}')"><span>${dName}</span>${c !== 'Global' ? `<span class="leave-btn" onclick="window.leaveChan(event, '${c}')">×</span>` : ''}</div>`;
