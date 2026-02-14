@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v20 | Limit & Counter</title>
+    <title>ChatTheOnlibe v21 | Full Features</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; }
@@ -21,26 +21,38 @@
         #color-in { width: 35px; height: 33px; border: 1px solid #444; background: transparent; cursor: pointer; padding: 0; border-radius: 4px; }
         .save-btn { background: #2ecc71; color: white; width: 100%; padding: 8px; font-size: 11px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
-        /* Main */
+        /* Ana Alan */
         #main { flex: 1; display: flex; flex-direction: column; height: 100dvh; min-width: 0; background: #121212; }
         #top-bar { height: 50px; background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #333; flex-shrink: 0; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
 
-        /* Giriş Alanı ve Sayaç */
+        /* Kanal Listesi ve Çıkma Butonu */
+        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 5px; margin-bottom: 2px; }
+        .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
+        .leave-btn { color: #ff4747; font-weight: bold; padding: 2px 8px; font-size: 14px; }
+        .leave-btn:hover { background: rgba(255, 71, 71, 0.2); border-radius: 4px; }
+
+        /* Giriş Alanı ve Karakter Sayacı */
         #input-zone { padding: 10px; background: var(--panel); border-top: 1px solid #333; flex-shrink: 0; }
         .input-container { position: relative; background: #2a2a2a; border-radius: 20px; padding: 0 15px; display: flex; align-items: center; }
         #msg-input { flex: 1; background: transparent; border: none; padding: 12px 0; color: white; outline: none; font-size: 14px; min-width: 0; padding-right: 45px; }
         #char-count { position: absolute; right: 65px; font-size: 10px; color: #666; font-weight: bold; pointer-events: none; }
         #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px 0; flex-shrink: 0; }
 
-        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 5px; }
-        .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
+        /* Kullanıcı Listesi Modalı */
+        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 200px; max-height: 300px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 1000; overflow-y: auto; padding: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
+        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 14px; }
+
+        /* RGB Efekti */
         .rgb-nick { background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: move-bg 3s linear infinite; font-weight: bold; }
         @keyframes move-bg { to { background-position: 200% center; } }
-        @media (max-width: 600px) { #sidebar { width: 115px; } }
+
+        @media (max-width: 600px) { #sidebar { width: 120px; } }
     </style>
 </head>
 <body>
+
+<div id="user-modal"><div class="label">Kullanıcılar</div><div id="online-list"></div></div>
 
 <div id="app">
     <div id="sidebar">
@@ -50,20 +62,22 @@
             <button class="save-btn" onclick="updateProfile()">KAYDET</button>
         </div>
         <div class="p-3">
-            <span class="label">ODALAR</span>
-            <div id="chan-list" style="max-height: 200px; overflow-y: auto;"></div>
+            <span class="label">ODA KATIL</span>
+            <input type="text" id="chan-in" placeholder="Oda adı..." style="width:100%; background:#2a2a2a; border:1px solid #444; color:white; padding:5px; margin-bottom:5px; border-radius:4px; font-size:11px;">
+            <button onclick="joinNew()" style="background:var(--accent); color:white; width:100%; padding:6px; border:none; border-radius:4px; font-size:10px; font-weight:bold;">KATIL</button>
         </div>
+        <div id="chan-list" style="flex:1; overflow-y:auto; padding:5px;"></div>
     </div>
 
     <div id="main">
         <div id="top-bar">
-            <span id="cur-title" style="font-weight:bold; color:var(--accent);"># Global</span>
-            <span style="font-size: 10px; color:#555;">v20</span>
+            <span id="cur-title" style="font-weight:bold; color:var(--accent); font-size:13px;"># Global</span>
+            <button onclick="toggleUserList()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">👤</button>
         </div>
         <div id="messages"></div>
         <div id="input-zone">
             <div class="input-container">
-                <input type="text" id="msg-input" placeholder="Mesaj..." maxlength="100" oninput="updateCounter(this)" onkeypress="if(event.key==='Enter') sendMsg()">
+                <input type="text" id="msg-input" placeholder="Mesaj yaz..." maxlength="100" oninput="updateCounter(this)" onkeypress="if(event.key==='Enter') sendMsg()">
                 <span id="char-count">0/100</span>
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
@@ -102,11 +116,11 @@
         document.getElementById('char-count').style.color = count >= 90 ? "#ff4747" : "#666";
     };
 
-    // FİLTRE VE LİMİT KONTROLÜ
+    // FİLTRELEME
     const applyFilters = (text) => {
-        if (me.noLimit) return text; 
-        let f = text.substring(0, 100); // Max 100 karakter
-        const badWords = ["piç", "amk", "sik", "göt", "oç"];
+        if (me.noLimit) return text;
+        let f = text.substring(0, 100);
+        const badWords = ["piç", "amk", "sik", "göt", "oç", "yarrak"];
         badWords.forEach(w => { f = f.replace(new RegExp(w, "gi"), (m) => m[0] + "##"); });
         return f.replace(/(05|5)([0-9]{2})([0-9]{5})([0-9]{2})/g, "$1$2#####$4");
     };
@@ -124,37 +138,85 @@
                     document.getElementById('color-in').value = me.color;
                     switchChan(curChan);
                 });
+                loadUsers();
             }
         });
     });
 
+    window.loadUsers = () => {
+        onValue(ref(db, 'users'), (snap) => {
+            const list = document.getElementById('online-list');
+            list.innerHTML = "";
+            snap.forEach(u => {
+                const user = u.val();
+                if(user.uid !== me.uid && user.nick) {
+                    const div = document.createElement('div');
+                    div.className = "user-item";
+                    div.innerText = user.nick;
+                    div.onclick = () => startDM(user.nick);
+                    list.appendChild(div);
+                }
+            });
+        });
+    };
+
+    window.startDM = (targetNick) => {
+        if(confirm(targetNick + " ile özel oda açılsın mı?")) {
+            const dmName = [me.nick, targetNick].sort().join('~');
+            if(!joined.includes(dmName)) { joined.push(dmName); saveJoined(); }
+            switchChan(dmName);
+            toggleUserList();
+        }
+    };
+
     window.switchChan = (name) => {
+        if(name.includes('~') && !name.split('~').includes(me.nick)) return alert("Yetkisiz!");
         off(ref(db, `channels/${curChan}/messages`));
         curChan = name;
-        document.getElementById('cur-title').innerText = "# " + name;
+        document.getElementById('cur-title').innerText = name.includes('~') ? "🔒 " + name.replace(me.nick,'').replace('~','') : "# " + name;
         onValue(ref(db, `channels/${name}/messages`), (s) => {
             const box = document.getElementById('messages');
             box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
-                box.innerHTML += `<div style="font-size:14px;"><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
+                box.innerHTML += `<div><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
             });
             scrollToBottom();
         });
         renderList();
     };
 
+    window.leaveChan = (e, name) => {
+        e.stopPropagation();
+        if(name === "Global") return alert("Global kapatılamaz!");
+        joined = joined.filter(c => c !== name);
+        saveJoined();
+        if(curChan === name) switchChan("Global");
+        else renderList();
+    };
+
+    window.saveJoined = () => localStorage.setItem('joined_chans', JSON.stringify(joined));
+
     window.renderList = () => {
         const l = document.getElementById('chan-list');
-        l.innerHTML = joined.map(c => `<div class="chan-item ${c===curChan?'active':''}" onclick="switchChan('${c}')"># ${c}</div>`).join('');
+        l.innerHTML = `<span class="label">Kanallarım</span>`;
+        joined.forEach(c => {
+            const isDM = c.includes('~');
+            const displayName = isDM ? '💬 ' + c.replace(me.nick,'').replace('~','') : '# ' + c;
+            l.innerHTML += `
+                <div class="chan-item ${c === curChan ? 'active' : ''}" onclick="switchChan('${c}')">
+                    <span>${displayName}</span>
+                    ${c !== 'Global' ? `<span class="leave-btn" onclick="leaveChan(event, '${c}')">×</span>` : ''}
+                </div>`;
+        });
     };
 
     window.sendMsg = () => {
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
-        const filtered = applyFilters(i.value);
+        const filteredText = applyFilters(i.value);
         push(ref(db, `channels/${curChan}/messages`), {
-            uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB || false, text: filtered, time: serverTimestamp()
+            uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB || false, text: filteredText, time: serverTimestamp()
         });
         i.value = "";
         updateCounter(i);
@@ -172,7 +234,17 @@
     window.updateProfile = () => {
         const n = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
-        if(n) { update(ref(db, 'users/' + me.uid), { nick: n, color: c }); alert("Profil Güncellendi!"); }
+        if(n) { update(ref(db, 'users/' + me.uid), { nick: n, color: c }); alert("Tamamdır!"); }
+    };
+
+    window.joinNew = () => {
+        const n = document.getElementById('chan-in').value.trim();
+        if(n && !joined.includes(n)) { joined.push(n); saveJoined(); switchChan(n); document.getElementById('chan-in').value=""; }
+    };
+
+    window.toggleUserList = () => {
+        const m = document.getElementById('user-modal');
+        m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 </script>
 </body>
