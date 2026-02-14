@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v31</title>
+    <title>ChatTheOnlibe v32</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -19,13 +19,11 @@
             #sidebar.open { transform: translateX(0); box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
         }
 
-        /* MOBİL BUTONLAR */
         #menu-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
         @media (max-width: 768px) { #menu-btn { display: block; } }
         #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; }
         #overlay.active { display: block; }
 
-        /* PANEL ÖĞELERİ */
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
         .label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; }
         input[type="text"] { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; margin-bottom: 5px; }
@@ -38,14 +36,14 @@
         .msg-line { word-wrap: break-word; font-size: 14px; line-height: 1.4; }
 
         /* KANALLAR */
-        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 5px; margin: 2px 5px; }
+        .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 5px; margin: 2px 5px; color: #999; }
         .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
         .leave-btn { color: #ff4747; font-weight: bold; padding: 2px 8px; }
 
-        /* KULLANICI LİSTESİ MODAL */
-        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 200px; max-height: 300px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 2000; padding: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; color: #ccc; }
-        .user-item:hover { color: white; background: #222; }
+        /* KULLANICI LİSTESİ */
+        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 220px; max-height: 350px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 2000; padding: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); overflow-y: auto; }
+        .user-item { padding: 10px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; }
 
         /* INPUT */
         #input-zone { padding: 10px; background: var(--panel); border-top: 1px solid #333; }
@@ -100,7 +98,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -117,7 +115,6 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // Otomatik Player ID
     let pid = localStorage.getItem('player_id') || Math.floor(Math.random() * 900) + 100;
     localStorage.setItem('player_id', pid);
     const defaultNick = "Player" + pid;
@@ -127,7 +124,6 @@
     let joined = JSON.parse(localStorage.getItem('joined_chans')) || ["Global"];
     let canSend = true;
 
-    // UI FONKSİYONLARI
     window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('overlay').classList.toggle('active');
@@ -140,7 +136,6 @@
         m.style.display = m.style.display === 'block' ? 'none' : 'block';
     };
 
-    // CORE MANTIK
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -153,9 +148,11 @@
                         me.nick = d.nick || defaultNick;
                         me.color = d.color || "#ffffff";
                         me.isRGB = d.isRGB || false;
+                        me.noLimit = d.noLimit || false;
                     } else { set(userRef, me); }
                     
                     document.getElementById('nick-in').value = me.nick.startsWith("Player") ? "" : me.nick;
+                    document.getElementById('color-in').value = me.color;
                     window.switchChan(curChan);
                 });
 
@@ -171,7 +168,6 @@
         curChan = name;
         localStorage.setItem('last_chan', name);
         
-        // Başlık Ayarı
         let title = name;
         if(name.includes('~')) title = "🔒 " + name.replace(me.nick, '').replace('~', '');
         document.getElementById('cur-title').innerText = title;
@@ -181,7 +177,8 @@
             box.innerHTML = "";
             s.forEach(m => {
                 const d = m.val();
-                box.innerHTML += `<div class="msg-line"><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
+                const mid = m.key; // Mesaj silme için ID
+                box.innerHTML += `<div class="msg-line" data-id="${mid}"><b class="${d.isRGB?'rgb-nick':''}" style="${d.isRGB?'':`color:${d.color}`}">${d.nick}:</b> <span>${d.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         });
@@ -193,7 +190,7 @@
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
         push(ref(db, `channels/${curChan}/messages`), {
-            nick: me.nick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp()
+            nick: me.nick, color: me.color, isRGB: me.isRGB, text: i.value, time: serverTimestamp(), uid: me.uid
         });
         i.value = "";
         if(!me.noLimit) {
@@ -230,7 +227,7 @@
         if(targetNick === me.nick) return;
         const dmName = [me.nick, targetNick].sort().join('~');
         if(!joined.includes(dmName)) { joined.push(dmName); saveJoined(); }
-        window.switchChan(dmName);
+        window.switchChan(dmName); // Direkt odaya sokar
         window.toggleUserList();
     };
 
@@ -243,7 +240,7 @@
                 if(user.online && user.uid !== me.uid) {
                     const div = document.createElement('div');
                     div.className = "user-item";
-                    div.innerText = "• " + (user.nick || "Anonim");
+                    div.innerHTML = `<span class="status-dot"></span><span class="${user.isRGB?'rgb-nick':''}" style="${user.isRGB?'':`color:${user.color}`}">${user.nick}</span>`;
                     div.onclick = () => window.startDM(user.nick);
                     list.appendChild(div);
                 }
@@ -263,6 +260,11 @@
     };
 
     document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') window.sendMsg(); };
+
+    // YONET.HTML İÇİN MESAJ SİLME FONKSİYONU (EĞER YONET.HTML BU JS'Yİ KULLANIYORSA)
+    window.deleteMessage = (chan, msgId) => {
+        remove(ref(db, `channels/${chan}/messages/${msgId}`));
+    };
 </script>
 </body>
 </html>
