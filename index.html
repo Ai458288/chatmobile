@@ -3,88 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v11 | Layout Fix</title>
+    <title>ChatTheOnlibe v12 | Fixed Height</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
         
-        /* Ekranın tamamını kilitle, dışarı taşma olmasın */
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
-        html, body { height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; background: var(--bg); color: var(--text); }
+        /* KRİTİK: Sayfanın büyümesini tamamen engelle */
+        html, body { 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; /* Sayfa asla kaymasın */
+            background: var(--bg); 
+            color: var(--text);
+            font-family: sans-serif;
+        }
 
-        #app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
-
-        /* Sidebar */
-        #sidebar { width: 180px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
-        .p-3 { padding: 10px; border-bottom: 1px solid #333; }
-        .label { font-size: 9px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 5px; font-size: 13px; }
-        button { width: 100%; padding: 8px; background: var(--accent); border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
-
-        /* ANA EKRAN DÜZENİ (GRID) */
-        #main { 
-            flex: 1; 
-            display: grid; 
-            grid-template-rows: auto 1fr; /* Üst alan sabit, mesajlar kalan yer */
-            height: 100vh; 
+        /* Ana Taşıyıcı: Cihazın tam boyu kadar */
+        #app { 
+            display: flex; 
+            height: 100vh; /* Tam cihaz boyu */
+            width: 100vw; 
             overflow: hidden; 
         }
 
-        /* Giriş Alanı (Üstte Çakılı) */
+        /* Sidebar: Sabit boy */
+        #sidebar { 
+            width: 180px; 
+            background: var(--panel); 
+            border-right: 1px solid #333; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+        }
+
+        /* Mesaj Yazma ve Mesaj Alanının Olduğu Ana Kısım */
+        #main { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; /* Dışarı taşmayı engeller */
+            min-width: 0;
+            background: #121212;
+        }
+
+        /* Üst Panel: Sadece içeriği kadar yer kaplar */
         #input-zone { 
             padding: 10px; 
             background: var(--panel); 
             border-bottom: 1px solid #333; 
+            flex-shrink: 0; /* Küçülmesin/Büyümesin */
         }
-        .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 2px 12px; border-radius: 20px; }
-        #msg-input { flex: 1; background: transparent; border: none; padding: 10px; color: white; outline: none; -webkit-user-select: text; user-select: text; }
 
-        /* Mesajların Aktığı Yer (Sadece Burası Kayar) */
+        /* MESAJ ALANI: Sadece burası kayacak */
         #messages { 
-            overflow-y: scroll; /* Her zaman kaydırma alanı aktif olsun */
+            flex: 1; /* Kalan tüm boşluğu doldur */
+            overflow-y: auto; /* Sadece mesajlar kendi içinde kayar */
             padding: 15px; 
             display: flex; 
             flex-direction: column; 
             gap: 8px; 
-            background: #121212;
             -webkit-overflow-scrolling: touch; /* Mobilde akıcı kaydırma */
         }
         
+        /* Tasarım Detayları */
+        .input-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 2px 12px; border-radius: 20px; }
+        #msg-input { flex: 1; background: transparent; border: none; padding: 10px; color: white; outline: none; -webkit-user-select: text; user-select: text; }
         .message-line { font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 5px; word-wrap: break-word; }
-        .nick-btn { cursor: pointer; font-weight: bold; margin-right: 5px; }
-
-        /* RGB Animasyonu */
         .rgb-nick {
             background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             animation: rainbow 3s linear infinite; font-weight: bold;
         }
         @keyframes rainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+        
+        .p-3 { padding: 10px; border-bottom: 1px solid #333; }
+        .label { font-size: 9px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        input[type="text"] { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; margin-bottom: 5px; font-size: 13px; }
+        button { cursor: pointer; border-radius: 4px; font-weight: bold; }
 
-        #ban-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ff0000; color: white; z-index: 10000; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; }
-
-        @media (max-width: 600px) { #sidebar { width: 100px; } }
+        @media (max-width: 600px) { #sidebar { width: 100px; } .message-line { font-size: 14px; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
-
-<div id="ban-overlay">SİSTEMDEN UZAKLAŞTIRILDIN</div>
 
 <div id="app">
     <div id="sidebar">
         <div class="p-3">
             <span class="label">PROFİL</span>
             <input type="text" id="nick-in" placeholder="Nick...">
-            <div style="display:flex; gap:4px;">
-                <input type="color" id="color-in" value="#ffffff" style="width:30px; height:25px; border:none; background:none;">
-                <button onclick="updateProfile()" style="background:#2ecc71; padding:0;">OK</button>
-            </div>
+            <button onclick="updateProfile()" style="background:#2ecc71; color:white; border:none; width:100%; padding:5px;">KAYDET</button>
         </div>
-        <div class="p-3">
-            <span class="label">ODALAR</span>
-            <input type="text" id="chan-in" placeholder="Oda adı...">
-            <button onclick="joinNew()" style="font-size:11px;">KATIL</button>
-        </div>
-        <div class="chan-list" id="chan-list" style="overflow-y:auto; flex:1; padding:5px;"></div>
+        <div id="chan-list" style="flex:1; overflow-y:auto; padding:5px;"></div>
     </div>
 
     <div id="main">
@@ -92,7 +102,7 @@
             <div style="font-size:11px; font-weight:bold; color:var(--accent); margin-bottom:5px;"># <span id="cur-title">Global</span></div>
             <div class="input-row">
                 <input type="text" id="msg-input" placeholder="Mesaj yaz..." onkeypress="if(event.key==='Enter') sendMsg()">
-                <button id="send-btn" onclick="sendMsg()" style="background:none; color:var(--accent); width:auto;">GÖNDER</button>
+                <button id="send-btn" onclick="sendMsg()" style="background:none; border:none; color:var(--accent); font-weight:bold;">GÖNDER</button>
             </div>
         </div>
         <div id="messages"></div>
@@ -123,21 +133,16 @@
     let joined = JSON.parse(localStorage.getItem('myChans')) || ["Global"];
     let canSend = true;
 
-    // OTOMATİK EN ALTA KAYDIR
+    // SCROLL FIX: Sadece mesaj kutusunun sonuna git
     const scrollToBottom = () => {
         const box = document.getElementById('messages');
-        box.scrollTop = box.scrollHeight;
-        // Bazı mobil cihazlar için ikinci bir tetikleyici
-        setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+        box.scrollTo({ top: box.scrollHeight, behavior: 'instant' });
     };
 
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 me.uid = user.uid;
-                onValue(ref(db, 'bans/' + user.uid), (s) => {
-                    document.getElementById('ban-overlay').style.display = s.exists() ? 'flex' : 'none';
-                });
                 onValue(ref(db, 'users/' + user.uid), (s) => {
                     if (s.exists()) me = s.val();
                     else set(ref(db, 'users/' + user.uid), me);
@@ -189,21 +194,16 @@
 
     window.renderList = () => {
         const l = document.getElementById('chan-list');
-        l.innerHTML = `<span class="label">KANALLARIM</span>`;
+        l.innerHTML = `<span class="label">KANALLAR</span>`;
         joined.forEach(c => {
-            l.innerHTML += `<div class="chan-item ${c===curChan?'active':''}" onclick="switchChan('${c}')"># ${c}</div>`;
+            l.innerHTML += `<div style="padding:8px; cursor:pointer; font-size:12px; ${c===curChan?'background:#333; color:#5865f2;':''}" onclick="switchChan('${c}')"># ${c}</div>`;
         });
-    };
-
-    window.joinNew = () => {
-        const n = document.getElementById('chan-in').value.trim();
-        if(n && !joined.includes(n)) { joined.push(n); switchChan(n); document.getElementById('chan-in').value=""; }
     };
 
     window.updateProfile = () => {
         me.nick = document.getElementById('nick-in').value;
-        me.color = document.getElementById('color-in').value;
         update(ref(db, 'users/' + me.uid), me);
+        alert("Profil Güncellendi!");
     };
 </script>
 </body>
