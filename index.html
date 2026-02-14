@@ -3,75 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChatTheOnlibe v23 | Master</title>
+    <title>ChatTheOnlibe v24 | Full Memory</title>
     <style>
         :root { --bg: #0f0f0f; --panel: #1a1a1a; --accent: #5865f2; --text: #e0e0e0; }
-        
-        /* KOPYALAMA VE SEÇME ENGELİ */
-        * { 
-            box-sizing: border-box; 
-            -webkit-user-select: none; 
-            -ms-user-select: none; 
-            user-select: none; 
-            -webkit-touch-callout: none;
-        }
-
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         html, body { height: 100dvh; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; }
         #app { display: flex; height: 100dvh; width: 100vw; overflow: hidden; }
-
-        /* Sidebar */
         #sidebar { width: 165px; background: var(--panel); border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
         .p-3 { padding: 12px; border-bottom: 1px solid #333; }
         .label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 8px; display: block; }
-
-        /* Profil Girişleri */
         #nick-in { width: 100%; background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 12px; outline: none; margin-bottom: 5px; }
         #color-in { width: 100%; height: 30px; border: 1px solid #444; background: transparent; cursor: pointer; border-radius: 4px; margin-bottom: 5px; }
         .save-btn { background: #2ecc71; color: white; width: 100%; padding: 8px; font-size: 11px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-
-        /* Sohbet Alanı */
         #main { flex: 1; display: flex; flex-direction: column; height: 100dvh; min-width: 0; background: #121212; position: relative; }
         #top-bar { height: 50px; background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 1px solid #333; flex-shrink: 0; }
-        
-        /* MESAJLAR - OTOMATİK ALT SATIR */
-        #messages { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 15px; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
-        .message-line {
-            word-wrap: break-word; 
-            overflow-wrap: break-word; 
-            word-break: break-word; 
-            max-width: 100%;
-            line-height: 1.4;
-            font-size: 14px;
-        }
-
-        /* Kanallar ve X Butonu */
+        #messages { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .message-line { word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; max-width: 100%; line-height: 1.4; font-size: 14px; }
         .chan-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; font-size: 13px; cursor: pointer; border-radius: 5px; margin-bottom: 2px; }
         .chan-item.active { background: rgba(88, 101, 242, 0.2); color: var(--accent); font-weight: bold; }
         .leave-btn { color: #ff4747; font-weight: bold; padding: 2px 8px; font-size: 16px; }
-
-        /* Giriş ve Sayaç */
         #input-zone { padding: 10px; background: var(--panel); border-top: 1px solid #333; flex-shrink: 0; }
         .input-container { position: relative; background: #2a2a2a; border-radius: 20px; padding: 0 15px; display: flex; align-items: center; }
-        #msg-input { 
-            flex: 1; background: transparent; border: none; padding: 12px 0; color: white; outline: none; font-size: 14px; min-width: 0; padding-right: 50px; 
-            -webkit-user-select: text; user-select: text; 
-        }
+        #msg-input { flex: 1; background: transparent; border: none; padding: 12px 0; color: white; outline: none; font-size: 14px; min-width: 0; padding-right: 50px; -webkit-user-select: text; user-select: text; }
         #char-count { position: absolute; right: 65px; font-size: 9px; color: #666; font-weight: bold; }
         #send-btn { background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; padding: 10px 0; }
-
-        #user-modal { display: none; position: fixed; top: 60px; right: 10px; width: 180px; max-height: 250px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; z-index: 1000; overflow-y: auto; padding: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .user-item { padding: 8px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; }
-
-        /* RGB Efekti */
         .rgb-nick { background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: move-bg 3s linear infinite; font-weight: bold; }
         @keyframes move-bg { to { background-position: 200% center; } }
-
-        @media (max-width: 600px) { #sidebar { width: 115px; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
-
-<div id="user-modal"><div class="label">Aktif Kişiler</div><div id="online-list"></div></div>
 
 <div id="app">
     <div id="sidebar">
@@ -81,23 +41,18 @@
             <input type="color" id="color-in">
             <button class="save-btn" onclick="updateProfile()">KAYDET</button>
         </div>
-        <div class="p-3">
-            <span class="label">ODA KATIL</span>
-            <input type="text" id="chan-in" placeholder="Oda adı..." style="width:100%; background:#2a2a2a; border:1px solid #444; color:white; padding:5px; margin-bottom:5px; border-radius:4px; font-size:11px;">
-            <button onclick="joinNew()" style="background:var(--accent); color:white; width:100%; padding:6px; border:none; border-radius:4px; font-size:10px; font-weight:bold;">KATIL</button>
-        </div>
         <div id="chan-list" style="flex:1; overflow-y:auto; padding:5px;"></div>
     </div>
 
     <div id="main">
         <div id="top-bar">
             <span id="cur-title" style="font-weight:bold; color:var(--accent); font-size:13px;"># Global</span>
-            <button onclick="toggleUserList()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">👤</button>
+            <span id="cooldown-timer" style="font-size:11px; color:#ff4747; font-weight:bold;"></span>
         </div>
         <div id="messages"></div>
         <div id="input-zone">
             <div class="input-container">
-                <input type="text" id="msg-input" placeholder="Mesaj..." maxlength="100" oninput="updateCounter(this)" onkeypress="if(event.key==='Enter') sendMsg()">
+                <input type="text" id="msg-input" placeholder="Mesaj..." maxlength="100" oninput="document.getElementById('char-count').innerText=this.value.length+'/100'" onkeypress="if(event.key==='Enter') sendMsg()">
                 <span id="char-count">0/100</span>
                 <button id="send-btn" onclick="sendMsg()">GÖNDER</button>
             </div>
@@ -107,11 +62,8 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, update, serverTimestamp, off, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-    // Kısayol engeli
-    document.onkeydown = (e) => { if (e.ctrlKey && (e.keyCode === 67 || e.keyCode === 86 || e.keyCode === 85 || e.keyCode === 83)) return false; };
 
     const firebaseConfig = {
       apiKey: "AIzaSyBEsgu3-BbMIKezTXerExBu6ODmRX-F13U",
@@ -128,29 +80,9 @@
     const auth = getAuth(app);
 
     let me = { uid: "", nick: "", color: "#ffffff", isRGB: false, noLimit: false, online: true };
-    let curChan = "Global";
+    let curChan = localStorage.getItem('last_chan') || "Global";
     let joined = JSON.parse(localStorage.getItem('joined_chans')) || ["Global"];
     let canSend = true;
-    let idleTimer;
-
-    window.updateCounter = (el) => { document.getElementById('char-count').innerText = `${el.value.length}/100`; };
-
-    const applyFilters = (text) => {
-        if (me.noLimit) return text;
-        let f = text.substring(0, 100);
-        const badWords = ["piç", "amk", "sik", "göt", "oç", "yarrak"];
-        badWords.forEach(w => { f = f.replace(new RegExp(w, "gi"), (m) => m[0] + "##"); });
-        return f.replace(/(05|5)([0-9]{2})([0-9]{5})([0-9]{2})/g, "$1$2#####$4");
-    };
-
-    const resetIdleTimer = () => {
-        clearTimeout(idleTimer);
-        if (!me.online) { update(ref(db, 'users/' + me.uid), { online: true }); me.online = true; }
-        idleTimer = setTimeout(() => {
-            update(ref(db, 'users/' + me.uid), { online: false });
-            me.online = false;
-        }, 300000); // 5 dakika
-    };
 
     signInAnonymously(auth).then(() => {
         onAuthStateChanged(auth, (user) => {
@@ -158,51 +90,31 @@
                 me.uid = user.uid;
                 const userRef = ref(db, 'users/' + user.uid);
                 
+                // VERİTABANINDAN TÜM BİLGİLERİ ÇEK VE HATIRLA
                 onValue(userRef, (s) => {
-                    if (s.exists()) me = s.val();
-                    else set(userRef, me);
-                    document.getElementById('nick-in').value = me.nick || "";
-                    document.getElementById('color-in').value = me.color || "#ffffff";
+                    if (s.exists()) {
+                        me = s.val();
+                        // Sayfa yenilense bile inputları doldur
+                        document.getElementById('nick-in').value = me.nick || "";
+                        document.getElementById('color-in').value = me.color || "#ffffff";
+                    } else {
+                        set(userRef, me);
+                    }
                     switchChan(curChan);
                 });
 
-                onDisconnect(userRef).remove();
-                resetIdleTimer();
-                ['mousemove', 'keypress', 'touchstart'].forEach(e => window.addEventListener(e, resetIdleTimer));
-                loadUsers();
+                // Aktiflik ve Otomatik Silme
+                onDisconnect(userRef).update({ online: false });
+                update(userRef, { online: true });
             }
         });
     });
 
-    window.loadUsers = () => {
-        onValue(ref(db, 'users'), (snap) => {
-            const list = document.getElementById('online-list');
-            list.innerHTML = "";
-            snap.forEach(u => {
-                const user = u.val();
-                if(user.uid !== me.uid && user.nick && user.online) {
-                    const div = document.createElement('div');
-                    div.className = "user-item";
-                    div.innerText = user.nick;
-                    div.onclick = () => startDM(user.nick);
-                    list.appendChild(div);
-                }
-            });
-        });
-    };
-
-    window.startDM = (targetNick) => {
-        const dmName = [me.nick, targetNick].sort().join('~');
-        if(!joined.includes(dmName)) { joined.push(dmName); localStorage.setItem('joined_chans', JSON.stringify(joined)); }
-        switchChan(dmName);
-        toggleUserList();
-    };
-
     window.switchChan = (name) => {
-        if(name.includes('~') && !name.split('~').includes(me.nick)) return;
         off(ref(db, `channels/${curChan}/messages`));
         curChan = name;
-        document.getElementById('cur-title').innerText = name.includes('~') ? "🔒 " + name.replace(me.nick,'').replace('~','') : "# " + name;
+        localStorage.setItem('last_chan', name); // Son girilen odayı hatırla
+        document.getElementById('cur-title').innerText = "# " + name;
         onValue(ref(db, `channels/${name}/messages`), (s) => {
             const box = document.getElementById('messages');
             box.innerHTML = "";
@@ -215,41 +127,25 @@
         renderList();
     };
 
-    window.leaveChan = (e, name) => {
-        e.stopPropagation();
-        if(name === "Global") return;
-        joined = joined.filter(c => c !== name);
-        localStorage.setItem('joined_chans', JSON.stringify(joined));
-        if(curChan === name) switchChan("Global");
-        else renderList();
-    };
-
-    window.renderList = () => {
-        const l = document.getElementById('chan-list');
-        l.innerHTML = `<span class="label">ODALARIM</span>`;
-        joined.forEach(c => {
-            const isDM = c.includes('~');
-            const displayName = isDM ? '💬 ' + c.replace(me.nick,'').replace('~','') : '# ' + c;
-            l.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}" onclick="switchChan('${c}')"><span>${displayName}</span>${c !== 'Global' ? `<span class="leave-btn" onclick="leaveChan(event, '${c}')">×</span>` : ''}</div>`;
-        });
-    };
-
     window.sendMsg = () => {
         const i = document.getElementById('msg-input');
         if(!i.value.trim() || !canSend) return;
-        const filteredText = applyFilters(i.value);
+
         push(ref(db, `channels/${curChan}/messages`), {
-            uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB || false, text: filteredText, time: serverTimestamp()
+            uid: me.uid, nick: me.nick, color: me.color, isRGB: me.isRGB || false, text: i.value, time: serverTimestamp()
         });
+
         i.value = "";
-        updateCounter(i);
+        document.getElementById('char-count').innerText = "0/100";
+
+        // Bekleme Süresi (Sayfa yenilense de Admin yetkisi (noLimit) varsa işlemez)
         if(!me.noLimit) {
             canSend = false;
             let sec = 5;
-            const btn = document.getElementById('send-btn');
+            const cd = document.getElementById('cooldown-timer');
             const t = setInterval(() => {
-                btn.innerText = sec + "s"; sec--;
-                if(sec<0) { clearInterval(t); canSend = true; btn.innerText = "GÖNDER"; }
+                cd.innerText = "BEKLE: " + sec + "s"; sec--;
+                if(sec<0) { clearInterval(t); canSend = true; cd.innerText = ""; }
             }, 1000);
         }
     };
@@ -257,17 +153,18 @@
     window.updateProfile = () => {
         const n = document.getElementById('nick-in').value.trim();
         const c = document.getElementById('color-in').value;
-        if(n) { update(ref(db, 'users/' + me.uid), { nick: n, color: c }); alert("Profil Güncellendi!"); }
+        if(n) {
+            update(ref(db, 'users/' + me.uid), { nick: n, color: c });
+            alert("Bilgiler Kaydedildi!");
+        }
     };
 
-    window.joinNew = () => {
-        const n = document.getElementById('chan-in').value.trim();
-        if(n && !joined.includes(n)) { joined.push(n); localStorage.setItem('joined_chans', JSON.stringify(joined)); switchChan(n); document.getElementById('chan-in').value=""; }
-    };
-
-    window.toggleUserList = () => {
-        const m = document.getElementById('user-modal');
-        m.style.display = m.style.display === 'block' ? 'none' : 'block';
+    window.renderList = () => {
+        const l = document.getElementById('chan-list');
+        l.innerHTML = `<span class="label">ODALAR</span>`;
+        joined.forEach(c => {
+            l.innerHTML += `<div class="chan-item ${c === curChan ? 'active' : ''}" onclick="switchChan('${c}')"><span># ${c}</span></div>`;
+        });
     };
 </script>
 </body>
