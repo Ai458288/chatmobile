@@ -2,50 +2,45 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Chat Control v13 | Master Admin</title>
+    <title>Master Admin v14</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
         .card { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; background: #050505; }
-        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 8px; margin: 5px 0; cursor:pointer; font-family: monospace; }
+        input, button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; margin: 5px 0; cursor:pointer; }
         button:hover { background: #0f0; color: #000; }
-        
-        #auth-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:100;}
-        .msg-item { border-bottom: 1px solid #1a1a1a; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .chan-tag { color: #f0f; font-weight: bold; margin-top: 20px; display: block; border-bottom: 2px solid; padding-bottom: 5px; }
-        small { color: #888; font-size: 10px; }
-        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .msg-item { border-bottom: 1px solid #1a1a1a; padding: 10px; display: flex; justify-content: space-between; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        small { color: #888; }
     </style>
 </head>
 <body>
 
-<div id="auth-screen">
-    <h3 id="login-status">SİSTEM KONTROLÜ...</h3>
-    <div id="login-form" style="display:none; text-align: center;">
-        <input type="password" id="pass" placeholder="Admin Şifresi...">
-        <br>
-        <button onclick="login()">SİSTEME GİR</button>
-    </div>
+<div id="auth-screen" style="text-align:center; padding-top:100px;">
+    <h3>YÖNETİCİ GİRİŞİ</h3>
+    <input type="password" id="pass" placeholder="Şifre...">
+    <button onclick="login()">GİRİŞ</button>
 </div>
 
 <div id="admin-panel" style="display:none;">
-    <h2 style="color: #f00; text-align: center;">[ MASTER CONTROL PANEL V13 ]</h2>
+    <h2>[ SİSTEM YÖNETİMİ V14 ]</h2>
     
     <div class="card">
-        <h4>KULLANICI VE YETKİ KONTROLÜ</h4>
-        <input type="text" id="target-id" placeholder="İşlem yapılacak ID..." style="width:350px;">
+        <h4>KONTROL PANELİ</h4>
+        <input type="text" id="target-id" placeholder="Hedef Kullanıcı ID..." style="width:350px;">
         <div class="btn-group">
-            <button onclick="doAction('ban')" style="border-color: red; color: red;">BANLA</button>
+            <button onclick="doAction('ban')">BANLA</button>
             <button onclick="doAction('unban')">BAN KALDIR</button>
-            <button onclick="doAction('add_admin')" style="border-color: #f0f; color: #f0f;">ADMİN EKLE</button>
-            <button onclick="doAction('rem_admin')">ADMİN AL</button>
             <button onclick="doAction('rgb_on')">RGB VER</button>
-            <button onclick="doAction('limit_off')" style="color: yellow;">SÜRE KALDIR</button>
+            <button onclick="doAction('rgb_off')">RGB AL</button>
+            <button onclick="doAction('limit_off')">SÜRE KALDIR (VIP)</button>
+            <button onclick="doAction('limit_on')">SÜRE EKLE (NORMAL)</button>
+            <button onclick="doAction('add_admin')" style="color:#f0f;">ADMİN YAP</button>
         </div>
     </div>
 
     <div class="card">
-        <h4>CANLI MESAJ AKIŞI (TÜM ODALAR)</h4>
-        <div id="master-list">Veriler yükleniyor...</div>
+        <h4>MESAJLAR & ID TAKİBİ</h4>
+        <div id="master-list">Yükleniyor...</div>
     </div>
 </div>
 
@@ -68,27 +63,18 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // Otomatik Giriş Kontrolü
     signInAnonymously(auth);
     onAuthStateChanged(auth, (user) => {
         if (user) {
             onValue(ref(db, 'system_admins/' + user.uid), (s) => {
-                if (s.exists()) {
-                    // Kullanıcı zaten admin, şifresiz aç
-                    openPanel();
-                } else {
-                    // Admin değil, şifre sor
-                    document.getElementById('login-status').innerText = "ADMİN YETKİSİ GEREKLİ";
-                    document.getElementById('login-form').style.display = "block";
-                }
+                if (s.exists()) openPanel();
             });
         }
     });
 
     window.login = () => {
-        if(document.getElementById('pass').value === 'chatsite23') {
-            openPanel();
-        } else alert("Geçersiz Şifre!");
+        if(document.getElementById('pass').value === 'chatsite23') openPanel();
+        else alert("Hatalı!");
     };
 
     function openPanel() {
@@ -99,16 +85,17 @@
 
     window.doAction = (act) => {
         const id = document.getElementById('target-id').value.trim();
-        if(!id) return alert("Hata: Hedef ID belirtilmedi!");
+        if(!id) return alert("ID Girin!");
         
         if(act==='ban') set(ref(db, 'bans/'+id), {banned:true});
         if(act==='unban') remove(ref(db, 'bans/'+id));
-        if(act==='add_admin') set(ref(db, 'system_admins/'+id), {admin:true});
-        if(act==='rem_admin') remove(ref(db, 'system_admins/'+id));
         if(act==='rgb_on') update(ref(db, 'users/'+id), {isRGB:true});
+        if(act==='rgb_off') update(ref(db, 'users/'+id), {isRGB:false});
         if(act==='limit_off') update(ref(db, 'users/'+id), {noLimit:true});
+        if(act==='limit_on') update(ref(db, 'users/'+id), {noLimit:false});
+        if(act==='add_admin') set(ref(db, 'system_admins/'+id), {admin:true});
         
-        alert("Sistem Güncellendi!");
+        alert("İşlem Başarılı!");
     };
 
     function startMonitor() {
@@ -117,35 +104,24 @@
             list.innerHTML = "";
             const data = snap.val();
             if(!data) return;
-
             Object.keys(data).forEach(cName => {
-                const title = document.createElement('span');
-                title.className = "chan-tag";
-                title.innerText = "# " + cName;
-                list.appendChild(title);
-
                 const msgs = data[cName].messages;
                 if(msgs) {
                     Object.keys(msgs).forEach(mKey => {
                         const m = msgs[mKey];
-                        const row = document.createElement('div');
-                        row.className = "msg-item";
-                        // ID BİLGİSİ BURAYA GERİ GELDİ
-                        row.innerHTML = `
-                            <div>
-                                <b>${m.nick}:</b> ${m.text} <br>
-                                <small>Kullanıcı ID: ${m.uid}</small>
-                            </div>
-                            <button onclick="delMsg('${cName}','${mKey}')" style="color:red; border-color:red;">SİL</button>
-                        `;
-                        list.appendChild(row);
+                        list.innerHTML += `
+                            <div class="msg-item">
+                                <div>
+                                    <b>${m.nick}:</b> ${m.text} <br>
+                                    <small>ID: ${m.uid} | Oda: ${cName}</small>
+                                </div>
+                                <button onclick="remove(ref(db, 'channels/${cName}/messages/${mKey}'))">SİL</button>
+                            </div>`;
                     });
                 }
             });
         });
     }
-
-    window.delMsg = (c, k) => { if(confirm("Bu mesaj kalıcı olarak silinsin mi?")) remove(ref(db, `channels/${c}/messages/${k}`)); };
 </script>
 </body>
 </html>
